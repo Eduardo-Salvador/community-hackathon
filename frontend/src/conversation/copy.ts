@@ -28,7 +28,10 @@ const SUBJECTS: Record<Action['type'], string> = {
   veiculo: 'seu veículo',
 };
 
+export const DEMO_GUIDE = 'Atenção: esta é uma guia de demonstração. Não pague.';
+
 export function guiaReadyMessage(guia: Guia): string {
+  if (guia.demonstracao) return DEMO_GUIDE;
   return guia.pixCopiaECola || !guia.linhaDigitavel ? PIX_READY : BOLETO_READY;
 }
 

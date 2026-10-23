@@ -60,7 +60,7 @@ describe('ConversationStore', () => {
     expect(pix.chips.map((chip) => chip.label)).toEqual([
       'Guia gerada', 'Validando multa', 'Calculando desconto SNE', 'Gerando Pix e boleto', 'Preparando PDF',
     ]);
-    expect(pix.text).toBe('Prontinho. Copie o código e pague no app do seu banco.');
+    expect(pix.text).toBe('Atenção: esta é uma guia de demonstração. Não pague.');
   });
 
   it('reads vehicles from the veiculos wrapper', async () => {

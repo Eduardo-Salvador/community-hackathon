@@ -3,7 +3,8 @@ import type { Guia, Multa } from '../../api/types';
 import { useStore } from '../../conversation/context';
 import { copyText } from '../../lib/clipboard';
 import { brl, dateBR } from '../../lib/format';
-import { CopyIcon, DownloadIcon } from '../icons';
+import { TONES } from '../../lib/points';
+import { AlertIcon, CopyIcon, DownloadIcon } from '../icons';
 import { emailUrl, ShareMenu, whatsappUrl } from '../ShareMenu';
 
 export function PixConfirm({ turn }: { turn: string }) {
@@ -51,6 +52,16 @@ export function PixCard({ multa, guia }: { multa: Multa; guia: Guia }) {
   };
 
   return (
+    <>
+    {guia.demonstracao && (
+      <div className="notice" role="alert" style={{ background: TONES.danger.bg }}>
+        <AlertIcon size={20} color={TONES.danger.fg} style={{ flexShrink: 0 }} />
+        <div className="notice__text">
+          <strong style={{ color: TONES.danger.fg }}>Guia de demonstração. Não pague.</strong>
+          <span>Este código não é uma cobrança real do DETRAN.</span>
+        </div>
+      </div>
+    )}
     <div className="panel pix">
       {(guia.pixCopiaECola || qr) && (
         <div className="pix__qr">
@@ -110,5 +121,6 @@ export function PixCard({ multa, guia }: { multa: Multa; guia: Guia }) {
         {error && <span className="inline-error">{error}</span>}
       </div>
     </div>
+    </>
   );
 }

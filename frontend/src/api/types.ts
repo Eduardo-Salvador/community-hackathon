@@ -41,6 +41,7 @@ export type Guia = {
   pixQrCode?: string;
   textoCompartilhar?: string;
   pdfFileId?: string;
+  demonstracao?: boolean;
 };
 
 export type Veiculo = {

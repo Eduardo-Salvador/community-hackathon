@@ -190,6 +190,7 @@ export function createMockBackend({ delayMs = 600 }: { delayMs?: number } = {}) 
           pixCopiaECola: pix,
           textoCompartilhar: `Multa: ${multa?.descricao}\nValor: ${valor}\nBoleto: ${linha}\nPix copia e cola:\n${pix}`,
           pdfFileId: storeFile(session),
+          demonstracao: true,
         };
         return guia;
       }
