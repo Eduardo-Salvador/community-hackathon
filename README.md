@@ -19,4 +19,7 @@ npm run smoke   # roda o fluxo completo contra o servidor no ar
 
 Variáveis: veja [`backend/.env.example`](backend/.env.example).
 
-Deploy na Railway: **Root Directory** `/backend` e **Railway Config File** `/backend/railway.json`.
+## Deploy (Render)
+
+[`render.yaml`](render.yaml) define o serviço: **New → Blueprint** → este repositório.
+O Render pede os segredos (`sync: false`) na criação e só publica quando o CI passa.

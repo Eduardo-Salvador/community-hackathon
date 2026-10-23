@@ -92,3 +92,8 @@ test('texto da guia com boleto e sem vencimento', () => {
   const text = guiaShareText({ descricao: 'Estacionar em local proibido', valor: 195.23, linhaDigitavel: '1234 5678' });
   assert.equal(text, 'Multa: Estacionar em local proibido\nValor: R$ 195,23\nBoleto: 1234 5678');
 });
+
+test('texto serve para outras taxas pagas por boleto (ex.: CNH)', () => {
+  const text = guiaShareText({ rotulo: 'Taxa', descricao: 'Renovação da CNH', valor: 120, linhaDigitavel: '8569 0000' });
+  assert.equal(text, 'Taxa: Renovação da CNH\nValor: R$ 120,00\nBoleto: 8569 0000');
+});

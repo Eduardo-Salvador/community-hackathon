@@ -1,0 +1,76 @@
+# Render Blueprint: New → Blueprint → este repositório.
+# Variáveis com "sync: false" são pedidas no painel na criação; nunca coloque segredos aqui.
+services:
+  - type: web
+    name: community-hackathon-backend
+    runtime: node
+    # Free dorme sem acesso (use KEEP_ALIVE_URL). Para a demo, prefira starter.
+    plan: free
+    region: virginia
+    branch: main
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    # Só publica se o CI (typecheck + testes) passar.
+    autoDeployTrigger: checksPass
+    # O backend guarda sessões em memória: uma instância só.
+    numInstances: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: MOCK
+        value: "1"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: CORS_ORIGIN
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
+      - key: KEEP_ALIVE_URL
+        sync: false
+      # OpenAI
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: VOICE_MODEL
+        value: gpt-realtime
+      - key: DECISIONS
+        value: "1"
+      - key: DECISIONS_MODEL
+        value: gpt-6-luna
+      - key: EXTRACTION_MODEL
+        value: gpt-6-astra
+      # dots (MCP)
+      - key: MCP_API_KEY
+        sync: false
+      # Browserbase + Portal Senatran
+      - key: BROWSERBASE_API_KEY
+        sync: false
+      - key: BROWSERBASE_PROJECT_ID
+        sync: false
+      - key: PORTAL_URL
+        value: https://portalservicos.senatran.serpro.gov.br/
+      - key: SENATRAN_MULTAS_URL
+        sync: false
+      - key: SENATRAN_VEICULOS_URL
+        sync: false
+      # Infosimples
+      - key: INFOSIMPLES_TOKEN
+        sync: false
+      - key: INFOSIMPLES_MULTAS_URL
+        sync: false
+      - key: INFOSIMPLES_VEICULO_URL
+        sync: false
+      # Zapay
+      - key: ZAPAY_GUIA_URL
+        sync: false
+      - key: ZAPAY_ACCESS_TOKEN
+        sync: false
+      - key: ZAPAY_CUSTOMER_ID
+        sync: false
+      - key: ZAPAY_AUTH_SCHEME
+        value: JWT
+      - key: ZAPAY_API_VERSION
+        value: v2.0
+      - key: ADAPTER_TIMEOUT_MS
+        value: "15000"

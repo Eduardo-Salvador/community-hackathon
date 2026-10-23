@@ -1,5 +1,5 @@
 // Ping periódico na própria URL pública para o plano Free do Render não dormir.
-// Só liga com KEEP_ALIVE_URL; em plano pago ou na Railway não é necessário.
+// Só liga com KEEP_ALIVE_URL; em plano pago não é necessário.
 export function startKeepAlive(
   url: string,
   intervalMs: number,

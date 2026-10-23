@@ -44,7 +44,7 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
   };
   const adapters = deps.adapters ?? createAdapters(config, fetchImpl);
   const app = Fastify({
-    // Atrás do proxy da Railway: IP real do cliente (rate limit) e https no link de compartilhamento.
+    // Atrás do proxy da hospedagem: IP real do cliente (rate limit) e https no link de compartilhamento.
     trustProxy: config.trustProxy,
     logger: config.mock
       ? false
