@@ -364,6 +364,14 @@ export class ConversationStore {
         this.updateItem(turn, { card: { type: 'veiculo', veiculos, uf: this.state.uf } });
         return;
       }
+      case 'conectar_extensao': {
+        // Código para digitar na extensão do Chrome: fica escrito na conversa, além de falado.
+        const { codigo } = result as ToolResults['conectar_extensao'];
+        this.updateItem(turn, {
+          text: `Seu código da extensão: ${codigo.split('').join(' ')}. Abra a extensão Tupi Brasil no Chrome, digite o código, entre no gov.br e clique em Sincronizar.`,
+        });
+        return;
+      }
       default:
         return;
     }

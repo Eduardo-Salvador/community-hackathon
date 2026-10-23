@@ -75,12 +75,15 @@ export type ToolInputs = {
   listar_multas: Identificadores;
   gerar_guia_multa: { multaId: string };
   consultar_veiculos: Identificadores;
+  consultar_toxicologico: { cpf: string; dataNascimento: string; validadeCnh?: string };
+  conectar_extensao: Record<string, never>;
 };
 
 export type ToolName = keyof ToolInputs;
 
 export const TOOL_NAMES: readonly ToolName[] = [
   'selecionar_uf', 'iniciar_login', 'consultar_cnh', 'baixar_cnh', 'listar_multas', 'gerar_guia_multa', 'consultar_veiculos',
+  'consultar_toxicologico', 'conectar_extensao',
 ];
 
 export function isToolName(name: string): name is ToolName {
@@ -95,6 +98,8 @@ export type ToolResults = {
   listar_multas: { multas: Multa[]; pontos: ResumoPontos };
   gerar_guia_multa: Guia;
   consultar_veiculos: { veiculos: Veiculo[] };
+  consultar_toxicologico: { dataColeta?: string; prazoNovoExame?: string; observacao?: string };
+  conectar_extensao: { codigo: string; expiraEm: string; instrucoes: string };
 };
 
 export type ToolErrorCode =

@@ -61,6 +61,8 @@ const TOOL_INPUTS: Record<ToolName, (input: Record<string, unknown>) => boolean>
   listar_multas: () => true,
   gerar_guia_multa: (input) => typeof input.multaId === 'string' && input.multaId.length > 0 && input.multaId.length <= 64,
   consultar_veiculos: () => true,
+  consultar_toxicologico: (input) => typeof input.cpf === 'string' && typeof input.dataNascimento === 'string',
+  conectar_extensao: () => true,
 };
 
 const SERVICES: Record<ToolName, ServiceName> = {
@@ -71,6 +73,8 @@ const SERVICES: Record<ToolName, ServiceName> = {
   listar_multas: 'multas',
   gerar_guia_multa: 'multas',
   consultar_veiculos: 'veiculo',
+  consultar_toxicologico: 'cnh',
+  conectar_extensao: 'login',
 };
 
 type Shared = { fileId: string; expiresAt: number };
@@ -199,6 +203,14 @@ export function createMockBackend({ delayMs = 600 }: { delayMs?: number } = {}) 
         await step('carregando_mock', { quantidade: VEICULOS.length });
         await step('preparando_crlv', { quantidade: VEICULOS.length });
         return { veiculos: VEICULOS.map((veiculo) => ({ ...veiculo, crlvFileId: storeFile(session) })) };
+      case 'consultar_toxicologico':
+        return { dataColeta: '2025-04-10', prazoNovoExame: '2027-10-10', observacao: 'Exame em dia' };
+      case 'conectar_extensao':
+        return {
+          codigo: 'ABC234',
+          expiraEm: new Date(Date.now() + 10 * 60_000).toISOString(),
+          instrucoes: 'Abra a extensão Tupi Brasil no Chrome, digite o código, entre no gov.br e clique em Sincronizar.',
+        };
     }
   };
 
