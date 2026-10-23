@@ -33,7 +33,13 @@ export function createBrowserbaseProvider(config: Config, fetchImpl: typeof fetc
           projectId: config.browserbaseProjectId,
           timeout: config.browserTimeoutSec,
           // Login gov.br: nada de gravação/log com dados pessoais, e o captcha é do usuário.
-          browserSettings: { recordSession: false, logSession: false, solveCaptchas: false },
+          browserSettings: {
+            recordSession: false,
+            logSession: false,
+            solveCaptchas: false,
+            // Tela estreita: o gov.br usa o layout de celular e o live view fica legível no iframe do site.
+            viewport: { width: 640, height: 800 },
+          },
         }),
       });
       try {

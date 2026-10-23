@@ -698,11 +698,14 @@ iframe:focus-visible {
   line-height: 1.5;
 }
 
+/* Mesma proporção do navegador remoto (640x800): o gov.br aparece em tamanho legível, sem encolher. */
 .login__frame {
   display: block;
   width: calc(100% - 16px);
-  height: 480px;
-  margin: 0 8px 8px;
+  max-width: 560px;
+  aspect-ratio: 640 / 800;
+  height: auto;
+  margin: 0 auto 8px;
   border: none;
   border-radius: 18px;
   background: var(--bg);

@@ -106,7 +106,12 @@ test('Browserbase fora do ar vira 503 e pede sessão sem gravação nem captcha 
   const res = await call('iniciar_login');
   assert.equal(res.statusCode, 503);
   assert.equal(res.json().code, 'BROWSER_UNAVAILABLE');
-  assert.deepEqual(body.browserSettings, { recordSession: false, logSession: false, solveCaptchas: false });
+  assert.deepEqual(body.browserSettings, {
+    recordSession: false,
+    logSession: false,
+    solveCaptchas: false,
+    viewport: { width: 640, height: 800 },
+  });
   await app.close();
 });
 
