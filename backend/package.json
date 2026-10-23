@@ -1,5 +1,5 @@
 {
-  "name": "community-hackathon",
+  "name": "community-hackathon-backend",
   "private": true,
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
