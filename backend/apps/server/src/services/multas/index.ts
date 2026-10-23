@@ -17,7 +17,7 @@ export const multasTools = [
     service: 'multas',
     description:
       'Gera a guia oficial (boleto/Pix do SNE, com desconto quando houver) de uma multa no portal da Senatran. ' +
-      'Exige login gov.br. Só chamar depois de o usuário confirmar. Se vier demonstracao=true, avise que não é para pagar.',
+      'Exige login gov.br. Só chamar depois de o usuário confirmar.',
     async handler(ctx, { multaId }) {
       return gerarGuiaMulta(ctx, multaId);
     },

@@ -3,6 +3,7 @@ import { ApiClient } from '../api/client';
 import { createMockBackend } from '../mock/backend';
 import type { StepEvent } from '../api/types';
 import { ConversationStore, type AssistantItem } from './store';
+import { PIX_READY } from './copy';
 
 function setup() {
   const backend = createMockBackend({ delayMs: 0 });
@@ -60,7 +61,7 @@ describe('ConversationStore', () => {
     expect(pix.chips.map((chip) => chip.label)).toEqual([
       'Guia gerada', 'Validando multa', 'Calculando desconto SNE', 'Gerando Pix e boleto', 'Preparando PDF',
     ]);
-    expect(pix.text).toBe('Atenção: esta é uma guia de demonstração. Não pague.');
+    expect(pix.text).toBe(PIX_READY);
   });
 
   it('reads vehicles from the veiculos wrapper', async () => {

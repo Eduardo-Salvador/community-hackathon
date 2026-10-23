@@ -87,7 +87,6 @@ export async function gerarGuiaMulta(
       ...pagamento,
       pixCopiaECola: resultado.guia.pixCopiaECola,
       linhaDigitavel: resultado.guia.linhaDigitavel,
-      demonstracao,
     });
   const pdfFileId = ctx.files.put(ctx.session.id, {
     contentType: 'application/pdf',
@@ -102,16 +101,13 @@ export async function gerarGuiaMulta(
     ...resultado.guia,
     pdfFileId,
     pixQrCode: pixCopiaECola ? await pixQrCode(pixCopiaECola) : undefined,
-    textoCompartilhar:
-      (demonstracao ? 'DEMONSTRAÇÃO - NÃO PAGUE ESTE CÓDIGO\n' : '') +
-      guiaShareText({
-        descricao: multa.descricao,
-        valor: pagamento.valorCentavos / 100,
-        vencimento: multa.prazoDesconto,
-        linhaDigitavel: resultado.guia.linhaDigitavel,
-        pixCopiaECola,
-      }),
-    demonstracao,
+    textoCompartilhar: guiaShareText({
+      descricao: multa.descricao,
+      valor: pagamento.valorCentavos / 100,
+      vencimento: multa.prazoDesconto,
+      linhaDigitavel: resultado.guia.linhaDigitavel,
+      pixCopiaECola,
+    }),
   });
   ctx.session.profile.guias ??= {};
   ctx.session.profile.guias[multaId] = guia;

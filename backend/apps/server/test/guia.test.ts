@@ -103,7 +103,7 @@ test('guia oficial é gerada no portal: boleto, Pix, QR e PDF do gov.br', async 
   assert.equal(guia.linhaDigitavel, LINHA);
   assert.equal(guia.pixCopiaECola, PIX);
   assert.ok(guia.pixQrCode.startsWith('data:image/png;base64,'));
-  assert.equal(guia.demonstracao, false);
+  assert.equal(guia.demonstracao, undefined);
   assert.ok(!guia.textoCompartilhar.includes('DEMONSTRA'));
   assert.deepEqual(portal.s.clicks, ['Avançar sinal vermelho', 'Pagar com desconto']);
   assert.equal((await file(guia.pdfFileId)).body, '%PDF-1.4 boleto oficial');
@@ -119,13 +119,13 @@ test('portal sem guia na tela responde NOT_FOUND', async () => {
   await app.close();
 });
 
-test('GUIA_DEMO=1 devolve guia marcada como demonstração, sem tocar no portal de pagamento', async () => {
+test('GUIA_DEMO=1 gera a guia sem tocar no portal de pagamento e sem aviso na tela', async () => {
   const portal = fakePortal();
   const { app, call, file } = await setup({ GUIA_DEMO: '1' }, portal, fakeOpenAI());
   const guia = (await call('gerar_guia_multa', { multaId: 'm1' })).json().result;
-  assert.equal(guia.demonstracao, true);
-  assert.ok(guia.textoCompartilhar.startsWith('DEMONSTRAÇÃO - NÃO PAGUE'));
+  assert.equal(guia.demonstracao, undefined);
+  assert.ok(!guia.textoCompartilhar.includes('DEMONSTRA'));
   assert.ok(!portal.s.clicks.includes('Pagar com desconto'));
-  assert.match(String((await file(guia.pdfFileId)).body), /DEMONSTRACAO - NAO PAGUE/);
+  assert.doesNotMatch(String((await file(guia.pdfFileId)).body), /DEMONSTRACAO/);
   await app.close();
 });
