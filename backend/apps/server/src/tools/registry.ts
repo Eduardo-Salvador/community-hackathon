@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { type Decision, ToolInputs, type ToolName } from '@hackathon/contracts';
+import { type Decision, ToolInputs, ToolResults, type ToolName } from '@hackathon/contracts';
+import { AdapterError } from '../adapters/http/errors.ts';
 import { ToolError } from '../core/errors.ts';
 import { checkPrerequisites } from '../orchestrator/rules.ts';
 import { UntrustedDataError } from '../core/untrusted.ts';
@@ -46,14 +47,19 @@ export async function runTool(
     events.emitStep(ctx.session.id, tool.service, step, status, data);
 
   emit(tool.name, 'start');
-  const blocked = checkPrerequisites(tool.name, ctx.session);
+  const blocked = checkPrerequisites(tool.name, ctx.session, input.data);
   if (blocked) {
     const code = blocked.action === 'ask_uf' ? 'UF_REQUIRED' : 'LOGIN_REQUIRED';
     emit(tool.name, 'error', { code, next: blocked });
     return { ok: false, code, message: blocked.reason, next: blocked };
   }
   try {
-    const result = await tool.handler({ ...ctx, emit }, input.data as never);
+    const rawResult = await tool.handler({ ...ctx, emit }, input.data as never);
+    const output = ToolResults[tool.name].safeParse(rawResult);
+    if (!output.success) {
+      throw new UntrustedDataError(`tool:${tool.name}`, output.error.issues);
+    }
+    const result = output.data;
     emit(tool.name, 'ok', result);
     return { ok: true, result };
   } catch (err) {
@@ -62,6 +68,11 @@ export async function runTool(
         ? { code: err.code, message: err.message }
         : err instanceof UntrustedDataError
           ? { code: 'BAD_SOURCE_DATA', message: err.message }
+          : err instanceof AdapterError
+            ? {
+                code: err.code === 'INVALID_RESPONSE' ? 'BAD_SOURCE_DATA' : 'SOURCE_UNAVAILABLE',
+                message: `${err.provider} indisponível`,
+              }
           : { code: 'INTERNAL', message: 'Erro inesperado' };
     emit(tool.name, 'error', failure);
     if (failure.code === 'INTERNAL') throw err;

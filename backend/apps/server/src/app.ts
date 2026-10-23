@@ -1,10 +1,11 @@
-import Fastify,{ type FastifyReply, type FastifyRequest } from 'fastify';
+import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import websocket from '@fastify/websocket';
 import { z } from 'zod';
+import { createAdapters, type Adapters } from './adapters/index.ts';
 import { createExtractor } from './ai/extract.ts';
 import { createBrowserbaseProvider } from './browser/browserbase.ts';
 import { BrowserManager } from './browser/manager.ts';
@@ -29,7 +30,7 @@ declare module 'fastify' {
 
 const WsAuthSchema = z.object({ type: z.literal('auth'), sessionId: z.string(), token: z.string() });
 
-type Deps = { fetch: typeof fetch; browserProvider?: BrowserProvider };
+type Deps = { fetch: typeof fetch; browserProvider?: BrowserProvider; adapters?: Adapters };
 
 export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
   const fetchImpl = overrides.fetch ?? globalThis.fetch;
@@ -38,7 +39,9 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
     browserProvider:
       overrides.browserProvider ??
       (config.browserbaseApiKey ? createBrowserbaseProvider(config, fetchImpl) : undefined),
+    adapters: overrides.adapters,
   };
+  const adapters = deps.adapters ?? createAdapters(config, fetchImpl);
   const app = Fastify({
     // Atrás do proxy da Railway: IP real do cliente (rate limit) e https no link de compartilhamento.
     trustProxy: config.trustProxy,
@@ -66,7 +69,7 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
   const orchestrator = new Orchestrator(createDecisionsClient(config, deps.fetch));
   // Mesma execução para REST, voz e MCP.
   const runToolFor = (session: Session, name: string, input: unknown) =>
-    runTool(name, input, { session, config, files, browsers, extractor }, events);
+    runTool(name, input, { session, config, files, browsers, extractor, adapters }, events);
 
   // Corpo vazio com content-type JSON vira {} em vez de erro 400.
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
@@ -115,7 +118,7 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
       }
       session.voiceTokensIssued++;
       try {
-        return await createVoiceToken(config, deps.fetch);
+        return await createVoiceToken(config, fetchImpl);
       } catch (err) {
         if (!(err instanceof VoiceUpstreamError)) throw err;
         req.log.warn({ status: err.status }, 'falha ao gerar token de voz');
@@ -130,15 +133,17 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
     async (req, reply) => {
       const result = await runToolFor(req.auth!, req.params.name, req.body);
       if (!result.ok) {
-        const status =
-          {
-            UNKNOWN_TOOL: 404,
-            NOT_FOUND: 404,
-            INVALID_INPUT: 400,
-            NOT_IMPLEMENTED: 501,
-            EXTRACTION_FAILED: 502,
-            BROWSER_UNAVAILABLE: 503,
-          }[result.code] ?? 409;
+        const status = {
+          UNKNOWN_TOOL: 404,
+          NOT_FOUND: 404,
+          INVALID_INPUT: 400,
+          IDENTIFIERS_REQUIRED: 400,
+          BAD_SOURCE_DATA: 502,
+          SOURCE_UNAVAILABLE: 502,
+          EXTRACTION_FAILED: 502,
+          BROWSER_UNAVAILABLE: 503,
+          NOT_IMPLEMENTED: 501,
+        }[result.code] ?? 409;
         return reply.code(status).send(result);
       }
       return result;

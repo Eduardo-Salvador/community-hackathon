@@ -7,6 +7,17 @@ export type Config = {
   openaiApiKey?: string;
   mcpApiKey?: string;
   voiceModel: string;
+  adapterTimeoutMs: number;
+  infosimplesToken?: string;
+  infosimplesMultasUrl?: string;
+  infosimplesVeiculoUrl?: string;
+  senatranMultasUrl?: string;
+  senatranVeiculosUrl?: string;
+  zapayGuiaUrl?: string;
+  zapayAccessToken?: string;
+  zapayCustomerId?: string;
+  zapayAuthScheme: string;
+  zapayApiVersion: string;
   extractionModel: string;
   extractionTimeoutMs: number;
   decisionsEnabled: boolean;
@@ -24,6 +35,11 @@ export type Config = {
   maxVoiceTokensPerSession: number;
 };
 
+function inteiroPositivo(valor: string | undefined, padrao: number): number {
+  const numero = Number(valor);
+  return Number.isInteger(numero) && numero > 0 ? numero : padrao;
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   return {
     port: Number(env.PORT ?? 3000),
@@ -36,6 +52,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     // Chave que o dots (ou outro cliente MCP) manda em Authorization: Bearer. Sem ela, /mcp fica desligado.
     mcpApiKey: env.MCP_API_KEY || undefined,
     voiceModel: env.VOICE_MODEL ?? 'gpt-realtime',
+    adapterTimeoutMs: inteiroPositivo(env.ADAPTER_TIMEOUT_MS, 15_000),
+    infosimplesToken: env.INFOSIMPLES_TOKEN || undefined,
+    infosimplesMultasUrl: env.INFOSIMPLES_MULTAS_URL || undefined,
+    infosimplesVeiculoUrl: env.INFOSIMPLES_VEICULO_URL || undefined,
+    senatranMultasUrl: env.SENATRAN_MULTAS_URL || undefined,
+    senatranVeiculosUrl: env.SENATRAN_VEICULOS_URL || undefined,
+    zapayGuiaUrl: env.ZAPAY_GUIA_URL || undefined,
+    zapayAccessToken: env.ZAPAY_ACCESS_TOKEN || undefined,
+    zapayCustomerId: env.ZAPAY_CUSTOMER_ID || undefined,
+    zapayAuthScheme: env.ZAPAY_AUTH_SCHEME ?? 'JWT',
+    zapayApiVersion: env.ZAPAY_API_VERSION ?? 'v2.0',
     extractionModel: env.EXTRACTION_MODEL ?? 'gpt-6-astra',
     extractionTimeoutMs: 30_000,
     decisionsEnabled: env.DECISIONS !== '0',

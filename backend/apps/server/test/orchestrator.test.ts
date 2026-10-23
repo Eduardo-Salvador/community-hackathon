@@ -19,10 +19,16 @@ test('tool bloqueada devolve o próximo passo', async () => {
   assert.equal(noUf.code, 'UF_REQUIRED');
   assert.equal(noUf.next.tool, 'selecionar_uf');
 
+  const fallbackNoUf = (await call('listar_multas', { cpf: '12345678900' })).json();
+  assert.equal(fallbackNoUf.code, 'UF_REQUIRED');
+
   await call('selecionar_uf', { uf: 'SP' });
   const noLogin = (await call('consultar_cnh')).json();
   assert.equal(noLogin.code, 'LOGIN_REQUIRED');
   assert.equal(noLogin.next.tool, 'iniciar_login');
+
+  const fallbackSemLogin = (await call('listar_multas', { cpf: '12345678900' })).json();
+  assert.equal(fallbackSemLogin.ok, true);
   await app.close();
 });
 
