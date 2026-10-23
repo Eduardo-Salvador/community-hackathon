@@ -19,6 +19,7 @@ export function createAdapters(config: Config, fetchImpl: typeof fetch = globalT
       {
         guiaUrl: config.zapayGuiaUrl,
         accessToken: config.zapayAccessToken,
+        customerId: config.zapayCustomerId,
         authScheme: config.zapayAuthScheme,
         apiVersion: config.zapayApiVersion,
         timeoutMs: config.adapterTimeoutMs,

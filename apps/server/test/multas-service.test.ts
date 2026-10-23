@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import type { Multa } from '@hackathon/contracts';
 import { createAdapters } from '../src/adapters/index.ts';
 import { AdapterError } from '../src/adapters/http/errors.ts';
 import { loadConfig } from '../src/core/config.ts';
@@ -7,6 +8,7 @@ import { ToolError } from '../src/core/errors.ts';
 import { FileStore } from '../src/core/files.ts';
 import type { Session } from '../src/core/session-store.ts';
 import { UntrustedDataError } from '../src/core/untrusted.ts';
+import { calcularPagamentoMulta, gerarGuiaMulta } from '../src/services/multas/gerar-guia.ts';
 import { listarMultas } from '../src/services/multas/listar.ts';
 import type { EmitStep, ToolContext } from '../src/tools/types.ts';
 
@@ -189,5 +191,65 @@ test('fluxo mock também usa o domínio de pontos', async () => {
   assert.deepEqual(
     eventos.map(({ step, status }) => `${step}:${status}`),
     ['carregando_mock:start', 'carregando_mock:ok', 'calculando_pontos:start', 'calculando_pontos:ok'],
+  );
+});
+
+const MULTA_COM_DESCONTO: Multa = {
+  id: 'm1',
+  descricao: 'Avançar sinal vermelho',
+  data: '2026-03-10',
+  local: 'Av. Paulista',
+  gravidade: 'gravissima',
+  pontos: 7,
+  valor: 293.47,
+  valorComDesconto: 176.08,
+  prazoDesconto: '2026-11-10',
+  expiraContagemEm: '2027-03-10',
+};
+
+test('guia aplica o desconto SNE apenas dentro do prazo', () => {
+  assert.deepEqual(calcularPagamentoMulta(MULTA_COM_DESCONTO, '2026-10-23'), {
+    valorCentavos: 17608,
+    descontoSneAplicado: true,
+  });
+  assert.deepEqual(calcularPagamentoMulta(MULTA_COM_DESCONTO, '2026-11-11'), {
+    valorCentavos: 29347,
+    descontoSneAplicado: false,
+  });
+});
+
+test('gera Pix e PDF mock, emite etapas e guarda a guia na sessão', async () => {
+  const { ctx, eventos } = criarContexto(undefined, { mock: true });
+  ctx.session.profile.multas = [MULTA_COM_DESCONTO];
+
+  const guia = await gerarGuiaMulta(ctx, 'm1', '2026-10-23');
+
+  assert.match(guia.pixCopiaECola ?? '', /^000201/);
+  assert.ok(guia.linhaDigitavel);
+  assert.ok(guia.pdfFileId);
+  assert.equal(ctx.session.profile.guias?.m1, guia);
+  const pdf = ctx.files.get(guia.pdfFileId!, ctx.session.id);
+  assert.equal(pdf?.contentType, 'application/pdf');
+  assert.equal(pdf?.body.subarray(0, 5).toString(), '%PDF-');
+  assert.deepEqual(
+    eventos.map(({ step, status }) => `${step}:${status}`),
+    [
+      'validando_multa:start',
+      'validando_multa:ok',
+      'calculando_desconto_sne:start',
+      'calculando_desconto_sne:ok',
+      'gerando_pagamento:start',
+      'gerando_pagamento:ok',
+      'preparando_pdf:start',
+      'preparando_pdf:ok',
+    ],
+  );
+});
+
+test('não gera guia para multa que não foi consultada', async () => {
+  const { ctx } = criarContexto(undefined, { mock: true });
+  await assert.rejects(
+    gerarGuiaMulta(ctx, 'inexistente'),
+    (error: unknown) => error instanceof ToolError && error.code === 'NOT_FOUND',
   );
 });

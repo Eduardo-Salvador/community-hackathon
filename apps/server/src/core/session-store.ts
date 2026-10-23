@@ -1,12 +1,18 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import type { Cnh, Multa, ResumoPontos, UF, Veiculo } from '@hackathon/contracts';
+import type { Cnh, Guia, Multa, ResumoPontos, UF, Veiculo } from '@hackathon/contracts';
 
 export type Session = {
   id: string;
   expiresAt: number;
   uf?: UF;
   browser?: { sessionId: string; liveViewUrl: string; loggedIn: boolean };
-  profile: { cnh?: Cnh; multas?: Multa[]; pontos?: ResumoPontos; veiculos?: Veiculo[] };
+  profile: {
+    cnh?: Cnh;
+    multas?: Multa[];
+    pontos?: ResumoPontos;
+    guias?: Record<string, Guia>;
+    veiculos?: Veiculo[];
+  };
   voiceTokensIssued: number;
 };
 

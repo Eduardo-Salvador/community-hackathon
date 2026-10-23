@@ -70,6 +70,12 @@ test('fluxo mock do Dev B respeita os contratos de saída', async () => {
   const guia = (await call(headers, 'gerar_guia_multa', { multaId: multas.result.multas[0].id })).json();
   assert.equal(guia.ok, true);
   assert.equal(guia.result.multaId, 'm1');
+  assert.match(guia.result.pixCopiaECola, /^000201/);
+
+  const guiaPdf = await app.inject({ method: 'GET', url: `/files/${guia.result.pdfFileId}`, headers });
+  assert.equal(guiaPdf.statusCode, 200);
+  assert.equal(guiaPdf.headers['content-type'], 'application/pdf');
+  assert.equal(guiaPdf.body.slice(0, 5), '%PDF-');
 
   const veiculos = (await call(headers, 'consultar_veiculos')).json();
   assert.equal(veiculos.ok, true);

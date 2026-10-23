@@ -11,6 +11,7 @@ export type Config = {
   senatranMultasUrl?: string;
   zapayGuiaUrl?: string;
   zapayAccessToken?: string;
+  zapayCustomerId?: string;
   zapayAuthScheme: string;
   zapayApiVersion: string;
   sessionTtlMs: number;
@@ -37,6 +38,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     senatranMultasUrl: env.SENATRAN_MULTAS_URL || undefined,
     zapayGuiaUrl: env.ZAPAY_GUIA_URL || undefined,
     zapayAccessToken: env.ZAPAY_ACCESS_TOKEN || undefined,
+    zapayCustomerId: env.ZAPAY_CUSTOMER_ID || undefined,
     zapayAuthScheme: env.ZAPAY_AUTH_SCHEME ?? 'JWT',
     zapayApiVersion: env.ZAPAY_API_VERSION ?? 'v2.0',
     sessionTtlMs: 30 * 60_000,

@@ -96,8 +96,15 @@ test('mapper da Infosimples normaliza veículo e valida o contrato', () => {
 
 test('Zapay envia autenticação/versionamento e mapeia Pix e boleto', async () => {
   let requestHeaders: Headers | undefined;
-  const fetchMock = (async (_url: string | URL | Request, init?: RequestInit) => {
+  let requestBody: Record<string, unknown> | undefined;
+  const fetchMock = (async (url: string | URL | Request, init?: RequestInit) => {
     requestHeaders = new Headers(init?.headers);
+    if (String(url).endsWith('/guia.pdf')) {
+      return new Response(Buffer.from('%PDF-1.4\n%%EOF\n'), {
+        headers: { 'content-type': 'application/pdf' },
+      });
+    }
+    requestBody = JSON.parse(String(init?.body));
     return new Response(
       JSON.stringify({
         order_id: 'order-1',
@@ -120,20 +127,43 @@ test('Zapay envia autenticação/versionamento e mapeia Pix e boleto', async () 
     {
       guiaUrl: 'https://api.b2b.usezapay.test/orders',
       accessToken: 'jwt-secreto',
+      customerId: 'customer-1',
       authScheme: 'JWT',
       apiVersion: 'v2.0',
     },
     createHttpClient(fetchMock),
   );
 
-  const resultado = await client.gerarGuia({ multaId: 'm1', payload: { external_id: 'm1' } });
+  const resultado = await client.gerarGuia({
+    multaId: 'm1',
+    descricao: 'Avançar sinal vermelho',
+    valorCentavos: 17608,
+    descontoSneAplicado: true,
+  });
 
   assert.equal(requestHeaders?.get('authorization'), 'JWT jwt-secreto');
   assert.equal(requestHeaders?.get('accept'), 'application/json; version=v2.0');
+  assert.deepEqual(requestBody, {
+    customer_id: 'customer-1',
+    external_id: 'm1',
+    closed: true,
+    amount: 17608,
+    items: [
+      {
+        product_id: 'm1',
+        amount: 17608,
+        description: 'Avançar sinal vermelho',
+        type: 'vehicle_debt',
+      },
+    ],
+    payments: [{ payment_method: 'pix', amount: 17608, pix: {} }],
+    metadata: { multa_id: 'm1', desconto_sne_aplicado: true },
+  });
   assert.equal(resultado.guia.multaId, 'm1');
   assert.equal(resultado.guia.pixCopiaECola, '00020101021226800014br.gov.bcb.pix-test');
   assert.equal(resultado.pdfUrl, 'https://api.b2b.usezapay.test/guia.pdf');
   assert.equal(GuiaSchema.safeParse(resultado.guia).success, true);
+  assert.equal((await client.baixarPdf(resultado.pdfUrl)).subarray(0, 5).toString(), '%PDF-');
 });
 
 test('adapters distinguem configuração ausente e erro retornado pelo fornecedor', async () => {

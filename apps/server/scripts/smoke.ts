@@ -54,7 +54,13 @@ if (pdf?.fileId) {
 const multas = await step('listar_multas');
 if (multas) {
   console.log(`   → ${multas.multas.length} multas, ${multas.pontos.total}/${multas.pontos.limite} pontos (${multas.pontos.alerta})`);
-  await step('gerar_guia_multa', { multaId: multas.multas[0].id });
+  const guia = await step('gerar_guia_multa', { multaId: multas.multas[0].id });
+  if (guia?.pdfFileId) {
+    const res = await fetch(`${base}/files/${guia.pdfFileId}`, { headers });
+    const ok = res.ok && res.headers.get('content-type') === 'application/pdf';
+    if (!ok) failures++;
+    console.log(`   ${ok ? '→ Guia PDF baixada' : '✖ falha ao baixar guia PDF'} (${res.status})`);
+  }
 }
 
 const veiculos = await step('consultar_veiculos');
