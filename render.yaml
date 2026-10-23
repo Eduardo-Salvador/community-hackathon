@@ -32,9 +32,9 @@ services:
       # OpenAI
       - key: OPENAI_API_KEY
         sync: false
-      # PENDENTE: confirmar o nome do modelo Realtime na conta da OpenAI.
+      # Voz: o modelo Realtime mais barato com function calling.
       - key: VOICE_MODEL
-        value: gpt-realtime
+        value: gpt-realtime-2.1-mini
       - key: DECISIONS
         value: "1"
       - key: DECISIONS_MODEL

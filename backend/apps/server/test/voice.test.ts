@@ -31,7 +31,7 @@ test('gera token com tools e instruções, e respeita o limite por sessão', asy
 
   const res = await voice();
   assert.equal(res.statusCode, 200);
-  assert.deepEqual(res.json(), { token: 'ek_test', expiresAt: 1_900_000_000, model: 'gpt-realtime' });
+  assert.deepEqual(res.json(), { token: 'ek_test', expiresAt: 1_900_000_000, model: 'gpt-realtime-2.1-mini' });
   assert.equal(sent.session.type, 'realtime');
   assert.ok(sent.session.instructions.includes('DADO'));
   assert.ok(sent.session.tools.some((t: any) => t.name === 'listar_multas' && t.type === 'function'));

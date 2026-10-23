@@ -58,7 +58,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     openaiApiKey: env.OPENAI_API_KEY || undefined,
     // Chave que o dots (ou outro cliente MCP) manda em Authorization: Bearer. Sem ela, /mcp fica desligado.
     mcpApiKey: env.MCP_API_KEY || undefined,
-    voiceModel: env.VOICE_MODEL ?? 'gpt-realtime',
+    // Mais barato com function calling (padrão da OpenAI para voz). Precisa de conta paga (tier Build+).
+    voiceModel: env.VOICE_MODEL || 'gpt-realtime-2.1-mini',
     adapterTimeoutMs: inteiroPositivo(env.ADAPTER_TIMEOUT_MS, 15_000),
     infosimplesToken: env.INFOSIMPLES_TOKEN || undefined,
     infosimplesMultasUrl: env.INFOSIMPLES_MULTAS_URL || undefined,
