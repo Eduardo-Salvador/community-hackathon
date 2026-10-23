@@ -2,6 +2,8 @@ export type Config = {
   port: number;
   mock: boolean;
   corsOrigin: string;
+  publicUrl?: string;
+  trustProxy: boolean;
   openaiApiKey?: string;
   mcpApiKey?: string;
   voiceModel: string;
@@ -27,6 +29,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     port: Number(env.PORT ?? 3000),
     mock: env.MOCK !== '0',
     corsOrigin: env.CORS_ORIGIN ?? 'http://localhost:5173',
+    // URL pública do backend para os links de compartilhamento (ex.: https://api.exemplo.com).
+    publicUrl: env.PUBLIC_URL || undefined,
+    trustProxy: env.TRUST_PROXY !== '0',
     openaiApiKey: env.OPENAI_API_KEY || undefined,
     // Chave que o dots (ou outro cliente MCP) manda em Authorization: Bearer. Sem ela, /mcp fica desligado.
     mcpApiKey: env.MCP_API_KEY || undefined,

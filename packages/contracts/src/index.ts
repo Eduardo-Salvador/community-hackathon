@@ -50,6 +50,10 @@ export const GuiaSchema = z.object({
   multaId: text(64),
   linhaDigitavel: z.string().regex(/^[\d .]{40,60}$/).optional(),
   pixCopiaECola: z.string().max(512).optional(),
+  // QR Code do Pix pronto para <img src>. Gerar com pixQrCode() de core/share.ts.
+  pixQrCode: z.string().startsWith('data:image/png;base64,').optional(),
+  // Texto pronto para WhatsApp/e-mail. Gerar com guiaShareText() de core/share.ts.
+  textoCompartilhar: z.string().max(2000).optional(),
   pdfFileId: z.string().optional(),
 });
 export type Guia = z.infer<typeof GuiaSchema>;

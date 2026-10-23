@@ -1,4 +1,5 @@
 import { sleep, ToolError } from '../../core/errors.ts';
+import { guiaShareText, pixQrCode } from '../../core/share.ts';
 import { defineTool } from '../../tools/types.ts';
 
 // Stub do Dev B (S2). Mantém o contrato para o frontend e a voz já funcionarem em mock.
@@ -48,11 +49,21 @@ export const multasTools = [
     description: 'Gera boleto/Pix de uma multa. Só chamar depois de o usuário confirmar.',
     async handler({ session, config }, { multaId }) {
       if (!config.mock) throw new ToolError('NOT_IMPLEMENTED', 'S2 ainda não implementado (Dev B)');
-      if (!session.profile.multas?.some((m) => m.id === multaId)) {
-        throw new ToolError('NOT_FOUND', 'Multa não encontrada; liste as multas antes');
-      }
+      const multa = session.profile.multas?.find((m) => m.id === multaId);
+      if (!multa) throw new ToolError('NOT_FOUND', 'Multa não encontrada; liste as multas antes');
       await sleep(200);
-      return { multaId, pixCopiaECola: '00020126MOCKPIX' };
+      const pixCopiaECola = '00020126580014br.gov.bcb.pix0136mock-chave-pix-detran5204000053039865802BR6304ABCD';
+      return {
+        multaId,
+        pixCopiaECola,
+        pixQrCode: await pixQrCode(pixCopiaECola),
+        textoCompartilhar: guiaShareText({
+          descricao: multa.descricao,
+          valor: multa.valorComDesconto ?? multa.valor,
+          vencimento: multa.prazoDesconto,
+          pixCopiaECola,
+        }),
+      };
     },
   }),
 ];

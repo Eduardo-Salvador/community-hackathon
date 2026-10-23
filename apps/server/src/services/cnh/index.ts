@@ -60,6 +60,9 @@ async function consultarReal(ctx: ToolContext) {
   });
 }
 
+const cnhTitle = (ctx: ToolContext, label: string) =>
+  ctx.session.profile.cnh ? `${label} de ${ctx.session.profile.cnh.nome}` : label;
+
 async function baixarReal(ctx: ToolContext) {
   const page = loggedPage(ctx);
   ctx.emit('baixando_pdf', 'start');
@@ -75,6 +78,7 @@ async function baixarReal(ctx: ToolContext) {
       const fileId = ctx.files.put(ctx.session.id, {
         contentType: 'application/pdf',
         filename: 'cnh-digital.pdf',
+        title: cnhTitle(ctx, 'CNH digital'),
         body: file.body,
       });
       return { fileId, tipo: 'pdf' as const };
@@ -86,6 +90,7 @@ async function baixarReal(ctx: ToolContext) {
   const fileId = ctx.files.put(ctx.session.id, {
     contentType: 'image/png',
     filename: 'comprovante-cnh.png',
+    title: cnhTitle(ctx, 'Comprovante da CNH'),
     body: await screenshot(page),
   });
   ctx.emit('gerando_comprovante', 'ok');
@@ -124,6 +129,7 @@ export const cnhTools = [
         const fileId = ctx.files.put(ctx.session.id, {
           contentType: 'application/pdf',
           filename: 'cnh-digital.pdf',
+          title: cnhTitle(ctx, 'CNH digital'),
           body: MOCK_PDF,
         });
         ctx.emit('baixando_pdf', 'ok');

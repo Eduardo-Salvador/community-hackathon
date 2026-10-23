@@ -169,6 +169,46 @@ export function buildOpenApi() {
           },
         },
       },
+      '/files/{id}/share': {
+        post: {
+          tags: ['Arquivos'],
+          summary: 'Link público de 15 min + textos prontos para WhatsApp e e-mail',
+          description:
+            'No celular, prefira o compartilhamento nativo (navigator.share) com o arquivo baixado de /files/{id}; ' +
+            'use `whatsappUrl`/`emailUrl` no desktop. O link some quando expira ou quando a sessão acaba.',
+          security: [{ sessionId: [], bearer: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            200: {
+              description: 'Link criado',
+              ...json({
+                type: 'object',
+                properties: {
+                  url: { type: 'string', format: 'uri' },
+                  expiresAt: { type: 'string', format: 'date-time' },
+                  texto: { type: 'string' },
+                  whatsappUrl: { type: 'string', format: 'uri' },
+                  emailUrl: { type: 'string' },
+                },
+                required: ['url', 'expiresAt', 'texto', 'whatsappUrl', 'emailUrl'],
+              }),
+            },
+            401: toolErrors[401],
+            404: { description: 'Arquivo não existe ou é de outra sessão', ...errorBody('NOT_FOUND') },
+          },
+        },
+      },
+      '/s/{token}': {
+        get: {
+          tags: ['Arquivos'],
+          summary: 'Abre um arquivo compartilhado (público, expira em 15 min)',
+          parameters: [{ name: 'token', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            200: { description: 'Arquivo', content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } } },
+            404: { description: 'Link expirado ou inválido' },
+          },
+        },
+      },
       '/files/{id}': {
         get: {
           tags: ['Arquivos'],

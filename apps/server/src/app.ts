@@ -10,6 +10,7 @@ import { createBrowserbaseProvider } from './browser/browserbase.ts';
 import { BrowserManager } from './browser/manager.ts';
 import type { BrowserProvider } from './browser/types.ts';
 import type { Config } from './core/config.ts';
+import { fileShareText, shareLinks } from './core/share.ts';
 import { buildOpenApi } from './docs/openapi.ts';
 import { registerMcp } from './mcp/server.ts';
 import { Orchestrator } from './orchestrator/index.ts';
@@ -39,7 +40,15 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
       (config.browserbaseApiKey ? createBrowserbaseProvider(config, fetchImpl) : undefined),
   };
   const app = Fastify({
-    logger: config.mock ? false : { redact: ['req.headers.authorization', 'req.headers["x-session-id"]'] },
+    // Atrás do proxy da Railway: IP real do cliente (rate limit) e https no link de compartilhamento.
+    trustProxy: config.trustProxy,
+    logger: config.mock
+      ? false
+      : {
+          redact: ['req.headers.authorization', 'req.headers["x-session-id"]'],
+          // Token de link compartilhado nunca vai para o log.
+          serializers: { req: (req) => ({ method: req.method, url: req.url.replace(/^\/s\/[^/?]+/, '/s/***') }) },
+        },
   });
   const events = new EventBus();
   const files = new FileStore(config.fileTtlMs);
@@ -145,6 +154,39 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
       .header('cache-control', 'no-store')
       .send(file.body);
   });
+
+  // Gera link público de 15 min + textos prontos para WhatsApp e e-mail.
+  app.post<{ Params: { id: string } }>(
+    '/files/:id/share',
+    { preHandler: requireSession, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      const shared = files.share(req.params.id, req.auth!.id);
+      if (!shared) return reply.code(404).send({ code: 'NOT_FOUND' });
+      const base = config.publicUrl ?? `${req.protocol}://${req.host}`;
+      const url = `${base.replace(/\/$/, '')}/s/${shared.token}`;
+      return {
+        url,
+        expiresAt: new Date(shared.expiresAt).toISOString(),
+        ...shareLinks(fileShareText(shared.file.title, url, shared.expiresAt), shared.file.title),
+      };
+    },
+  );
+
+  app.get<{ Params: { token: string } }>(
+    '/s/:token',
+    { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      const file = files.getShared(req.params.token);
+      if (!file) return reply.code(404).type('text/plain; charset=utf-8').send('Link expirado ou inválido.');
+      return reply
+        .header('content-type', file.contentType)
+        .header('content-disposition', `inline; filename="${file.filename}"`)
+        .header('cache-control', 'no-store')
+        .header('x-robots-tag', 'noindex')
+        .header('referrer-policy', 'no-referrer')
+        .send(file.body);
+    },
+  );
 
   // Navegador não manda header no WebSocket: a primeira mensagem precisa ser o auth.
   app.get('/ws', { websocket: true }, (socket) => {
