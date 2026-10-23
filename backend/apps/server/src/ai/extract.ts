@@ -22,13 +22,47 @@ const ResponseSchema = z.object({
   ),
 });
 
+type JsonSchema = Record<string, unknown>;
+
+// O modo strict exige todo campo em "required". Campos opcionais do Zod viram "pode ser null".
+export function toStrictSchema(schema: JsonSchema): JsonSchema {
+  const out: JsonSchema = { ...schema };
+  if (schema.type === 'object' && schema.properties) {
+    const props = schema.properties as Record<string, JsonSchema>;
+    const required = new Set((schema.required as string[] | undefined) ?? []);
+    out.properties = Object.fromEntries(
+      Object.entries(props).map(([key, prop]) => {
+        const strict = toStrictSchema(prop);
+        return [key, required.has(key) ? strict : { anyOf: [strict, { type: 'null' }] }];
+      }),
+    );
+    out.required = Object.keys(props);
+    out.additionalProperties = false;
+  }
+  if (schema.items) out.items = toStrictSchema(schema.items as JsonSchema);
+  if (Array.isArray(schema.anyOf)) out.anyOf = (schema.anyOf as JsonSchema[]).map(toStrictSchema);
+  return out;
+}
+
+// Inverso do toStrictSchema: null volta a ser "campo ausente" antes de validar com o Zod.
+export function dropNulls(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(dropNulls);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).filter(([, v]) => v !== null).map(([k, v]) => [k, dropNulls(v)]),
+    );
+  }
+  return value;
+}
+
 // Extração estruturada com a Responses API (GPT-6 Astra, o modelo dos dots).
 // A saída é presa ao JSON Schema e o chamador ainda valida com o contrato (fromPortal).
 export function createExtractor(config: Config, fetchImpl: typeof fetch) {
   return {
     async extract<S extends z.ZodObject>(name: string, schema: S, pageText: string): Promise<z.infer<S>> {
       if (!config.openaiApiKey) throw new ToolError('NOT_IMPLEMENTED', 'OPENAI_API_KEY não configurada');
-      const { $schema, ...jsonSchema } = z.toJSONSchema(schema) as Record<string, unknown>;
+      const { $schema, ...rawSchema } = z.toJSONSchema(schema, { io: 'input' }) as JsonSchema;
+      const jsonSchema = toStrictSchema(rawSchema);
       const res = await fetchImpl(RESPONSES_URL, {
         method: 'POST',
         headers: { authorization: `Bearer ${config.openaiApiKey}`, 'content-type': 'application/json' },
@@ -56,7 +90,7 @@ export function createExtractor(config: Config, fetchImpl: typeof fetch) {
       } catch {
         throw new UntrustedDataError(name, 'JSON inválido');
       }
-      const parsed = schema.safeParse(raw);
+      const parsed = schema.safeParse(dropNulls(raw));
       if (!parsed.success) throw new UntrustedDataError(name, parsed.error.issues);
       return parsed.data;
     },
