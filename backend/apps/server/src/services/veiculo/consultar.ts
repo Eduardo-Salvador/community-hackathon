@@ -5,6 +5,7 @@ import { mapearVeiculoInfosimples } from '../../adapters/infosimples/mapper.ts';
 import { consultarApiComRetry, normalizarIdentificadores } from '../fallback.ts';
 import type { ToolContext } from '../../tools/types.ts';
 import { consultarVeiculosNoPortal } from './portal.ts';
+import { enriquecerRecall } from '../extras/index.ts';
 
 type ConsultarVeiculosResult = z.infer<(typeof ToolResults)['consultar_veiculos']>;
 
@@ -98,6 +99,7 @@ export async function consultarVeiculos(
     }
   }
 
+  veiculos = await enriquecerRecall(ctx, veiculos);
   ctx.session.profile.veiculos = veiculos;
   return { veiculos };
 }

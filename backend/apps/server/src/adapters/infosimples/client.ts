@@ -28,6 +28,11 @@ export class InfosimplesClient {
     return this.consultar(this.config.veiculoUrl, input);
   }
 
+  // Consultas sem senha do usuário, por nome do serviço no catálogo (ex.: "senatran/recall").
+  consultarServico(servico: string, input: ConsultaInfosimplesInput): Promise<unknown[]> {
+    return this.consultar(`https://api.infosimples.com/api/v2/consultas/${servico}`, input);
+  }
+
   private async consultar(url: string | undefined, input: ConsultaInfosimplesInput): Promise<unknown[]> {
     if (!this.config.token || !url) {
       throw new AdapterError('Infosimples', 'NOT_CONFIGURED', 'Infosimples não configurada');

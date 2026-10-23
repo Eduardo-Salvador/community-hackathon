@@ -98,7 +98,13 @@ test('consulta multas pela Infosimples sem login usando CPF normalizado', async 
 test('falha do portal aciona fallback de veículo e repete uma falha transitória', async () => {
   let chamadas = 0;
   let corpo: Record<string, unknown> | undefined;
+  const recall: string[] = [];
   const fetchMock = (async (_url: string | URL | Request, init?: RequestInit) => {
+    // Consulta de recall (senatran/recall) é extra e não conta como tentativa do fallback.
+    if (String(_url).endsWith('/senatran/recall')) {
+      recall.push(String(_url));
+      return Response.json({ code: 200, data: [] });
+    }
     chamadas++;
     corpo = JSON.parse(String(init?.body));
     if (chamadas === 1) return new Response('indisponível', { status: 503 });
@@ -128,6 +134,7 @@ test('falha do portal aciona fallback de veículo e repete uma falha transitóri
   const resultado = await consultarVeiculos(ctx, { placa: 'abc-1d23', renavam: '12345678901' });
 
   assert.equal(chamadas, 2);
+  assert.equal(recall.length, 1, 'consulta o recall da placa');
   assert.deepEqual(corpo, {
     placa: 'ABC1D23',
     renavam: '12345678901',
@@ -149,6 +156,8 @@ test('falha do portal aciona fallback de veículo e repete uma falha transitóri
       'repetindo_consulta_api:ok',
       'mapeando_dados_api:start',
       'mapeando_dados_api:ok',
+      'consultando_recall:start',
+      'consultando_recall:ok',
     ],
   );
 });

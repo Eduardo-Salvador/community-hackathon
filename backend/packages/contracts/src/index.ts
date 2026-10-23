@@ -93,6 +93,7 @@ export const ToolNameSchema = z.enum([
   'listar_multas',
   'gerar_guia_multa',
   'consultar_veiculos',
+  'consultar_toxicologico',
 ]);
 export type ToolName = z.infer<typeof ToolNameSchema>;
 
@@ -111,6 +112,11 @@ export const ToolInputs = {
   listar_multas: IdentificadoresConsultaSchema,
   gerar_guia_multa: z.object({ multaId: z.string().min(1).max(64) }),
   consultar_veiculos: IdentificadoresConsultaSchema,
+  consultar_toxicologico: z.object({
+    cpf: z.string().regex(/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/),
+    dataNascimento: isoDate,
+    validadeCnh: isoDate.optional(),
+  }),
 } satisfies Record<ToolName, z.ZodType>;
 
 export const ToolResults = {
@@ -122,6 +128,11 @@ export const ToolResults = {
   listar_multas: z.object({ multas: z.array(MultaSchema), pontos: ResumoPontosSchema }),
   gerar_guia_multa: GuiaSchema,
   consultar_veiculos: z.object({ veiculos: z.array(VeiculoSchema) }),
+  consultar_toxicologico: z.object({
+    dataColeta: isoDate.optional(),
+    prazoNovoExame: isoDate.optional(),
+    observacao: text().optional(),
+  }),
 } satisfies Record<ToolName, z.ZodType>;
 
 // Próximo passo sugerido ao agente (pela OpenAI Decisions API ou pelas regras fixas).

@@ -39,6 +39,7 @@ test('lista as mesmas tools do registry + estado_sessao', async () => {
   assert.deepEqual(names, [
     'baixar_cnh',
     'consultar_cnh',
+    'consultar_toxicologico',
     'consultar_veiculos',
     'estado_sessao',
     'gerar_guia_multa',

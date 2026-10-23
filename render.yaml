@@ -51,7 +51,7 @@ services:
         sync: false
       - key: PORTAL_URL
         value: https://portalservicos.senatran.serpro.gov.br/
-      # Infosimples
+      # Infosimples: token liga recall e exame toxicológico (sem senha gov.br). URLs abaixo são opcionais.
       - key: INFOSIMPLES_TOKEN
         sync: false
       - key: INFOSIMPLES_MULTAS_URL
