@@ -1,0 +1,12 @@
+{
+  "name": "community-hackathon",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "npm run dev -w @hackathon/server",
+    "start": "npm run start -w @hackathon/server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "engines": { "node": ">=22" }
+}
