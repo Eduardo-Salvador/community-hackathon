@@ -12,7 +12,8 @@ export const loginTools = [
       'Se a extensão do Chrome estiver conectada, não abre nada: espera o usuário clicar em Sincronizar na extensão.',
     async handler({ session, config, browsers, emit }) {
       // Extensão conectada: o login é no Chrome do usuário. Nada de navegador na nuvem (o captcha do gov.br barra).
-      if (extensionLinks.isLinked(session.id)) {
+      // Com MOCK=1, o login simulado tem prioridade.
+      if (!config.mock && extensionLinks.isLinked(session.id)) {
         if (session.extensao) {
           emit('aguardando_usuario', 'ok', { via: 'extensao' });
           return { liveViewUrl: '', loggedIn: true };

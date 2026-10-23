@@ -40,9 +40,9 @@ export async function listarMultas(
   let ear: boolean;
   let referenciaCalculo = dataReferencia;
 
-  const daExtensao = ctx.session.extensao?.multas;
+  // Dados reais enviados pela extensão do Chrome do usuário. Com MOCK=1, o mock tem prioridade.
+  const daExtensao = ctx.config.mock ? undefined : ctx.session.extensao?.multas;
   if (daExtensao) {
-    // Dados reais enviados pela extensão do Chrome do usuário (tem prioridade, inclusive em mock).
     multasSemCalculo = daExtensao.multas;
     ear = daExtensao.ear;
     ctx.emit('dados_da_extensao', 'ok', { quantidade: multasSemCalculo.length });

@@ -18,8 +18,8 @@ const fakeOpenAI = (async (_u: string, init: RequestInit) => {
   return Response.json({ output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(data) }] }] });
 }) as typeof fetch;
 
-async function setup() {
-  const app = await buildApp(loadConfig({ MOCK: '1', OPENAI_API_KEY: 'sk', DECISIONS: '0' }), { fetch: fakeOpenAI });
+async function setup(mock = '0') {
+  const app = await buildApp(loadConfig({ MOCK: mock, OPENAI_API_KEY: 'sk', DECISIONS: '0' }), { fetch: fakeOpenAI });
   const { id, token } = (await app.inject({ method: 'POST', url: '/session' })).json();
   const headers = { 'x-session-id': id, authorization: `Bearer ${token}` };
   const call = (name: string, payload: object = {}) => app.inject({ method: 'POST', url: `/tools/${name}`, headers, payload });
@@ -34,7 +34,7 @@ test('tipoDaPagina só aceita telas do portal oficial', () => {
   assert.equal(tipoDaPagina('https://evil.example/#/habilitacao', PORTAL), undefined);
 });
 
-test('extensão pareada manda telas e os dados reais aparecem mesmo em MOCK=1', async () => {
+test('extensão pareada manda telas e os dados reais aparecem (MOCK=0)', async () => {
   const { app, call } = await setup();
   await call('selecionar_uf', { uf: 'SP' });
   const { codigo } = (await call('conectar_extensao')).json().result;
@@ -53,7 +53,7 @@ test('extensão pareada manda telas e os dados reais aparecem mesmo em MOCK=1', 
   assert.equal((await page(`${PORTAL}#/home`)).json().ignorada, true);
 
   const cnh = (await call('consultar_cnh')).json().result;
-  assert.equal(cnh.nome, 'JOAO REAL', 'dados da extensão têm prioridade sobre o mock');
+  assert.equal(cnh.nome, 'JOAO REAL', 'dados reais da extensão');
   const multas = (await call('listar_multas')).json().result;
   assert.equal(multas.multas[0].id, 'x1');
   assert.equal(multas.pontos.total, 4);
@@ -81,5 +81,16 @@ test('com a extensão conectada, iniciar_login não abre navegador e conclui qua
   await new Promise((r) => setTimeout(r, 30));
   assert.equal((await app.inject({ method: 'GET', url: '/session/state', headers })).json().loggedIn, true);
   assert.equal((await call('consultar_cnh')).json().result.nome, 'JOAO REAL');
+  await app.close();
+});
+
+test('com MOCK=1 o mock tem prioridade sobre os dados da extensão', async () => {
+  const { app, call } = await setup('1');
+  await call('selecionar_uf', { uf: 'SP' });
+  const { codigo } = (await call('conectar_extensao')).json().result;
+  const ext = { authorization: `Bearer ${(await app.inject({ method: 'POST', url: '/extension/claim', payload: { codigo } })).json().token}` };
+  await app.inject({ method: 'POST', url: '/extension/page', headers: ext, payload: { url: `${PORTAL}#/habilitacao/detalhes/1/2`, texto: 'x' } });
+  assert.equal((await call('iniciar_login')).json().result.liveViewUrl, 'about:blank', 'login simulado do mock');
+  assert.notEqual((await call('consultar_cnh')).json().result.nome, 'JOAO REAL');
   await app.close();
 });

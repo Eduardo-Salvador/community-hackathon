@@ -110,8 +110,8 @@ export const cnhTools = [
     description: 'Consulta validade, categoria e situação da CNH do usuário logado.',
     async handler(ctx) {
       let cnh;
-      if (ctx.session.extensao?.cnh) {
-        // Dados reais enviados pela extensão do Chrome do usuário (tem prioridade, inclusive em mock).
+      if (!ctx.config.mock && ctx.session.extensao?.cnh) {
+        // Dados reais enviados pela extensão do Chrome do usuário. Com MOCK=1, o mock tem prioridade.
         cnh = ctx.session.extensao.cnh;
         ctx.emit('dados_da_extensao', 'ok');
       } else if (ctx.config.mock) {
