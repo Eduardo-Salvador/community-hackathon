@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { ParticleField } from '../lib/particles';
+import { useReducedMotion } from '../lib/useReducedMotion';
 import { Header } from './Header';
+import { Mascots } from './Mascots';
 
 type HomeProps = {
   onStart: () => void;
@@ -8,6 +10,7 @@ type HomeProps = {
 
 export function Home({ onStart }: HomeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -20,6 +23,7 @@ export function Home({ onStart }: HomeProps) {
     <>
       <Header />
       <main className="start">
+        <Mascots paused={reduced} />
         <canvas ref={canvasRef} className="start__particles" width={1040} height={1040} aria-hidden="true" />
         <div className="start__intro">
           <h1 className="start__title">Olá, Brasil</h1>

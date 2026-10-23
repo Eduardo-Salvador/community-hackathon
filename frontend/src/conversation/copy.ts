@@ -1,11 +1,12 @@
 import type { Cnh, Guia, Multa, ResumoPontos, Veiculo } from '../api/types';
 import type { Action } from '../lib/intents';
+import { UF_NAMES } from '../lib/ufs';
 import {
   brl, dateBR, dayMonth, dayReference, discountPercent, lowerFirst, monthReference, monthYearLong,
 } from '../lib/format';
 
 export const UF_QUESTION = 'Claro! Isso é com o DETRAN. De qual estado você é?';
-export const PIX_READY = 'Prontinho. Copie o código e pague no app do seu banco.';
+export const PIX_READY = 'Prontinho! O Pix está aqui do lado. É só pagar no app do seu banco.';
 export const BOLETO_READY = 'Prontinho. Copie a linha digitável e pague no app do seu banco.';
 export const LOGIN_TIMEOUT = 'O tempo para entrar no gov.br acabou. Quer tentar de novo?';
 export const GOVBR_EXPIRED = 'Sua sessão no gov.br caiu. Entre de novo aqui do lado para continuar.';
@@ -41,7 +42,7 @@ export function loginMessage(action?: Action): string {
 }
 
 export function ufSaved(uf: string): string {
-  return `Pronto, anotei: DETRAN de ${uf}. O que você precisa?`;
+  return `Beleza, ${UF_NAMES[uf] ?? uf}! O que você precisa?`;
 }
 
 export function cnhMessage(cnh: Cnh): string {
@@ -88,8 +89,7 @@ export function bestDiscount(multas: Multa[]): Multa | undefined {
 export function pixConfirmMessage(multa: Multa): string {
   if (multa.valorComDesconto !== undefined) {
     const percent = discountPercent(multa.valor, multa.valorComDesconto);
-    const until = multa.prazoDesconto ? ` O desconto vale até ${dayMonth(multa.prazoDesconto)}.` : '';
-    return `Confirma? Pix de ${brl(multa.valorComDesconto)} para a multa “${multa.descricao}”, já com ${percent}% de desconto pelo SNE.${until}`;
+    return `Confirma? Pix de ${brl(multa.valorComDesconto)} para a multa “${multa.descricao}”, já com ${percent}% de desconto pelo SNE.`;
   }
   return `Confirma? Pix de ${brl(multa.valor)} para a multa “${multa.descricao}”.`;
 }
@@ -119,8 +119,8 @@ function vehicleSentence(veiculo: Veiculo): string {
     sentences.push(`Seu ${name} tem pendências: ${issues.join(', ')}.`);
   }
   if (veiculo.recall.length === 1) {
-    const lead = isVehicleClear(veiculo) ? 'Só tem um recall pendente' : 'Também tem um recall pendente';
-    sentences.push(`${lead}: ${lowerFirst(veiculo.recall[0] ?? '')}. O reparo é de graça na concessionária.`);
+    const lead = isVehicleClear(veiculo) ? 'Só tem um recall' : 'Também tem um recall pendente';
+    sentences.push(`${lead}: ${lowerFirst(veiculo.recall[0] ?? '')}, que é de graça na concessionária.`);
   } else if (veiculo.recall.length > 1) {
     sentences.push(`Tem ${veiculo.recall.length} recalls pendentes. O reparo é de graça na concessionária.`);
   }

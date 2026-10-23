@@ -1547,7 +1547,7 @@ iframe:focus-visible {
 }
 
 .start{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:16px 24px 56px;min-height:0;overflow:hidden}
-.start__particles{position:absolute;left:50%;top:52%;width:min(480px,90vw);height:min(480px,90vw);transform:translate(-50%,-50%);pointer-events:none;z-index:0}
+.start__particles{position:absolute;left:50%;top:56%;width:min(480px,90vw);height:min(480px,90vw);transform:translate(-50%,-50%);pointer-events:none;z-index:0}
 .start__intro{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center}
 .start__title{margin:0;font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:clamp(56px,9vw,104px);line-height:.95;letter-spacing:-.02em}
 .start__subtitle{margin:0;font-size:20px;color:#4F5B54}
@@ -1582,3 +1582,14 @@ iframe:focus-visible {
 .uf-picked{align-items:center;text-align:center;gap:10px;padding:32px}
 .uf-picked__code{font-family:'Instrument Serif',Georgia,serif;font-size:88px;line-height:1}
 .uf-picked__ok{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#EEF5F0;color:#1F6B47;font-size:13px;font-weight:600}
+.mascots{position:absolute;inset:0;z-index:1;pointer-events:none}
+.mascots__lines{position:absolute;inset:0;width:100%;height:100%}
+.mascot{position:absolute;width:64px;height:64px;animation:mascotBob 4.2s ease-in-out infinite}
+.mascot--2{animation-duration:5s;animation-delay:-1.2s}
+.mascot--3{animation-duration:4.6s;animation-delay:-2.4s}
+.mascot--4{animation-duration:5.4s;animation-delay:-3.1s}
+.mascot__bubble{position:absolute;width:max-content;max-width:150px;min-height:17px;padding:8px 12px;border-radius:16px;background:#fff;border:1px solid #E2E7E3;box-shadow:0 10px 24px rgba(15,26,21,.08);font-size:13px;font-weight:600;line-height:1.3;color:#0F1A15}
+.mascot__caret{display:inline-block;width:2px;height:13px;margin-left:1px;vertical-align:-2px;background:#009C3B}
+@keyframes mascotBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-9px) rotate(-2deg)}}
+@media (prefers-reduced-motion:reduce){.mascot{animation:none}}
+@media (max-width:900px){.mascots{display:none}}
