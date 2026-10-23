@@ -151,3 +151,33 @@ test('sessão pede proxy residencial no Brasil e, se o plano recusar, tenta sem 
   const off = loadConfig({ MOCK: '0', BROWSERBASE_API_KEY: 'bb', BROWSERBASE_PROJECT_ID: 'p', BROWSERBASE_PROXY: 'off' });
   assert.equal(off.browserProxyCountry, undefined);
 });
+
+test('keepAlive: solta o navegador durante o login, acompanha pela API e reconecta depois', async () => {
+  const s = { apiUrl: 'https://sso.acesso.gov.br/login', detached: 0, attached: 0, pageUrlReads: 0 };
+  const page = {
+    url: () => {
+      s.pageUrlReads++;
+      return 'https://sso.acesso.gov.br/login';
+    },
+    goto: async () => {},
+  } as unknown as Page;
+  const provider: BrowserProvider = {
+    open: async () => ({
+      id: 'bb', liveViewUrl: 'https://live.test', page, close: async () => {},
+      detach: async () => void s.detached++,
+      attach: async () => (s.attached++, page),
+      currentUrl: async () => s.apiUrl,
+    }),
+  };
+  const { app, call, state } = await setup(provider);
+  await call('iniciar_login');
+  assert.equal(s.detached, 1, 'desconectou depois de abrir o gov.br');
+  await wait(30);
+  assert.equal(s.attached, 0, 'continua desconectado enquanto o usuário está no gov.br');
+  s.apiUrl = 'https://portalservicos.senatran.serpro.gov.br/#/infracoes/consultar';
+  await wait(40);
+  assert.equal((await state()).loggedIn, true);
+  assert.equal(s.attached, 1, 'reconectou depois do login');
+  assert.equal(s.pageUrlReads, 0, 'nunca leu a URL pelo navegador durante o login');
+  await app.close();
+});

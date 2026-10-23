@@ -58,6 +58,8 @@ export class BrowserManager {
 
     emit('abrindo_portal', 'start');
     await browser.page.goto(this.config.portalLoginUrl, { waitUntil: 'domcontentloaded' });
+    // Solta o controle do navegador enquanto o usuário faz o login (captcha/QR não veem automação).
+    await browser.detach?.();
     emit('abrindo_portal', 'ok');
 
     emit('aguardando_usuario', 'start', { liveViewUrl: browser.liveViewUrl });
@@ -91,17 +93,29 @@ export class BrowserManager {
     const deadline = Date.now() + this.config.loginTimeoutMs;
     // A home do portal é pública: só conta como logado depois de passar pelo gov.br e voltar.
     let passedSso = false;
-    const timer = setInterval(() => {
+    let checking = false;
+    const timer = setInterval(async () => {
       if (this.browsers.get(session.id) !== browser) return clearInterval(timer);
-      const url = browser.page.url();
-      if (isGovBrSso(url)) passedSso = true;
-      if (passedSso && isLoggedIn(url, this.config.portalUrl)) {
-        clearInterval(timer);
-        this.watchers.delete(session.id);
-        if (session.browser) session.browser.loggedIn = true;
-        emit('aguardando_usuario', 'ok');
-        this.keepPortalAlive(session, browser, emit);
-      } else if (Date.now() > deadline) {
+      if (checking) return;
+      checking = true;
+      try {
+        // Desconectado (keepAlive): lê a URL pela API, sem tocar no navegador.
+        const url = browser.currentUrl ? await browser.currentUrl().catch(() => '') : browser.page.url();
+        if (this.browsers.get(session.id) !== browser) return;
+        if (isGovBrSso(url)) passedSso = true;
+        if (passedSso && isLoggedIn(url, this.config.portalUrl)) {
+          clearInterval(timer);
+          await browser.attach?.();
+          this.watchers.delete(session.id);
+          if (session.browser) session.browser.loggedIn = true;
+          emit('aguardando_usuario', 'ok');
+          this.keepPortalAlive(session, browser, emit);
+          return;
+        }
+      } finally {
+        checking = false;
+      }
+      if (Date.now() > deadline) {
         emit('aguardando_usuario', 'error', { code: 'LOGIN_TIMEOUT' });
         session.browser = undefined;
         void this.close(session.id);

@@ -1,4 +1,4 @@
-import { chromium } from 'playwright-core';
+import { type Browser, chromium } from 'playwright-core';
 import type { Config } from '../core/config.ts';
 import type { BrowserProvider, RemoteBrowser } from './types.ts';
 
@@ -27,12 +27,14 @@ export function createBrowserbaseProvider(config: Config, fetchImpl: typeof fetc
 
   return {
     async open(): Promise<RemoteBrowser> {
-      const create = (opts: { proxyCountry?: string; verified?: boolean }) =>
+      const create = (opts: { proxyCountry?: string; verified?: boolean; keepAlive?: boolean }) =>
         api<{ id: string; connectUrl: string }>('create', '/sessions', {
           method: 'POST',
           body: JSON.stringify({
             projectId: config.browserbaseProjectId,
             timeout: config.browserTimeoutSec,
+            // keepAlive: a sessão sobrevive enquanto o backend se desconecta durante o login.
+            ...(opts.keepAlive ? { keepAlive: true } : {}),
             // IP residencial no Brasil: o hCaptcha do gov.br rejeita acessos de datacenter estrangeiro.
             ...(opts.proxyCountry ? { proxies: [{ type: 'browserbase', geolocation: { country: opts.proxyCountry } }] } : {}),
             // Login gov.br: nada de gravação/log com dados pessoais, e o captcha é do usuário.
@@ -49,37 +51,65 @@ export function createBrowserbaseProvider(config: Config, fetchImpl: typeof fetc
         });
       // Do mais protegido ao mais simples: se o plano recusar um recurso, tenta sem ele.
       const attempts = [
-        { proxyCountry: config.browserProxyCountry, verified: config.browserVerified },
-        { proxyCountry: config.browserProxyCountry },
+        { proxyCountry: config.browserProxyCountry, verified: config.browserVerified, keepAlive: true },
+        { proxyCountry: config.browserProxyCountry, keepAlive: true },
+        { keepAlive: true },
         {},
       ].filter((a, i, all) => all.findIndex((b) => JSON.stringify(b) === JSON.stringify(a)) === i);
       let session: { id: string; connectUrl: string } | undefined;
       let lastError: unknown;
+      let keepAlive = false;
       for (const attempt of attempts) {
         try {
           session = await create(attempt);
+          keepAlive = Boolean(attempt.keepAlive);
           break;
         } catch (err) {
           lastError = err;
         }
       }
       if (!session) throw lastError;
+      const { id, connectUrl } = session;
+      const pageOf = async (b: Browser) => {
+        const context = b.contexts()[0] ?? (await b.newContext());
+        return context.pages()[0] ?? (await context.newPage());
+      };
       try {
-        const browser = await chromium.connectOverCDP(session.connectUrl);
-        const context = browser.contexts()[0] ?? (await browser.newContext());
-        const page = context.pages()[0] ?? (await context.newPage());
-        const live = await api<{ debuggerFullscreenUrl: string }>('live-view', `/sessions/${session.id}/debug`);
-        return {
-          id: session.id,
+        let browser = await chromium.connectOverCDP(connectUrl);
+        let attached = true;
+        const live = await api<{ debuggerFullscreenUrl: string }>('live-view', `/sessions/${id}/debug`);
+        const remote: RemoteBrowser = {
+          id,
           liveViewUrl: live.debuggerFullscreenUrl,
-          page,
+          page: await pageOf(browser),
           close: async () => {
-            await browser.close().catch(() => {});
-            await release(session.id);
+            if (attached) await browser.close().catch(() => {});
+            await release(id);
           },
         };
+        // Sem keepAlive, desconectar encerraria a sessão: aí o controle fica conectado o tempo todo.
+        if (keepAlive) {
+          remote.detach = async () => {
+            if (!attached) return;
+            attached = false;
+            await browser.close().catch(() => {});
+          };
+          remote.attach = async () => {
+            if (!attached) {
+              browser = await chromium.connectOverCDP(connectUrl);
+              attached = true;
+            }
+            remote.page = await pageOf(browser);
+            return remote.page;
+          };
+          remote.currentUrl = async () => {
+            const debug = await api<{ pages: Array<{ url: string }> }>('live-view', `/sessions/${id}/debug`);
+            return debug.pages.map((p) => p.url).find((u) => u && u !== 'about:blank') ?? '';
+          };
+        }
+        return remote;
       } catch (err) {
-        await release(session.id);
+        await release(id);
         throw err;
       }
     },
