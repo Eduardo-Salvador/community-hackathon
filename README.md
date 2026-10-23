@@ -5,7 +5,7 @@ Assistente de serviços do DETRAN por voz e chat.
 | Pasta | O que é |
 |---|---|
 | [`backend/`](backend) | API Node/TypeScript (Fastify): sessão, voz, login gov.br, CNH, multas, veículo, MCP. Swagger em `/docs`. |
-| `frontend/` | Site (time de frontend). |
+| [`frontend/`](frontend) | Site React/Vite: conversa por texto e voz, cards de CNH, multas, Pix e veículo. |
 
 ## Backend
 
@@ -18,6 +18,26 @@ npm run smoke   # roda o fluxo completo contra o servidor no ar
 ```
 
 Variáveis: veja [`backend/.env.example`](backend/.env.example).
+
+## Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev       # http://localhost:5173, com proxy para o backend em localhost:3000
+npm run dev:mock  # sem backend: mock do contrato dentro do navegador
+npm test
+npm run build
+```
+
+Variáveis: veja [`frontend/.env.example`](frontend/.env.example). Em produção, `VITE_API_URL` aponta para o backend
+e o `CORS_ORIGIN` do backend aponta para o site.
+
+### Deploy do frontend (Vercel)
+
+1. Importe o repositório na Vercel com **Root Directory** = `frontend` (o [`vercel.json`](frontend/vercel.json) já define build e cabeçalhos).
+2. Defina `VITE_API_URL` = URL do backend no Render, sem barra no final.
+3. No Render, defina `CORS_ORIGIN` = URL de produção da Vercel. Previews da Vercel têm outra URL e são bloqueados pelo CORS.
 
 ## Pendências de configuração
 
