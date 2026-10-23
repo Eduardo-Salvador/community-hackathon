@@ -1,6 +1,7 @@
 # Tupi Brasil: seu assistente para burocracias
 
 **🔗 Acesse:** **https://community-hackathon-sigma.vercel.app**
+**🎬 Vídeo:** https://www.youtube.com/watch?v=s1_tuuQiSiw
 API (Swagger): https://community-hackathon-backend.onrender.com/docs
 
 > O backend roda no plano gratuito do Render: o primeiro acesso pode levar até 1 minuto para "acordar".
