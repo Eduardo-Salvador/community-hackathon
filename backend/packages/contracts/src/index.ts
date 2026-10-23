@@ -94,14 +94,21 @@ export const ToolNameSchema = z.enum([
 ]);
 export type ToolName = z.infer<typeof ToolNameSchema>;
 
+export const IdentificadoresConsultaSchema = z.object({
+  cpf: z.string().regex(/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/).optional(),
+  placa: z.string().regex(/^[A-Za-z]{3}-?\d[A-Za-z0-9]\d{2}$/).optional(),
+  renavam: z.string().regex(/^\d{9,11}$/).optional(),
+});
+export type IdentificadoresConsulta = z.infer<typeof IdentificadoresConsultaSchema>;
+
 export const ToolInputs = {
   selecionar_uf: z.object({ uf: UFSchema }),
   iniciar_login: z.object({}),
   consultar_cnh: z.object({}),
   baixar_cnh: z.object({}),
-  listar_multas: z.object({}),
+  listar_multas: IdentificadoresConsultaSchema,
   gerar_guia_multa: z.object({ multaId: z.string().min(1).max(64) }),
-  consultar_veiculos: z.object({}),
+  consultar_veiculos: IdentificadoresConsultaSchema,
 } satisfies Record<ToolName, z.ZodType>;
 
 export const ToolResults = {
@@ -138,6 +145,8 @@ export const ToolErrorCodeSchema = z.enum([
   'UF_REQUIRED',
   'LOGIN_REQUIRED',
   'BAD_SOURCE_DATA',
+  'SOURCE_UNAVAILABLE',
+  'IDENTIFIERS_REQUIRED',
   'NOT_IMPLEMENTED',
   'BROWSER_UNAVAILABLE',
   'EXTRACTION_FAILED',

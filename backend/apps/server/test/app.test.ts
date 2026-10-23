@@ -38,6 +38,7 @@ test('Swagger expõe todas as tools e rotas', async () => {
 test('valida a entrada das tools', async () => {
   const headers = await newSession();
   assert.equal((await call(headers, 'selecionar_uf', { uf: 'XX' })).statusCode, 400);
+  assert.equal((await call(headers, 'listar_multas', { cpf: '123' })).statusCode, 400);
   assert.equal((await call(headers, 'nao_existe')).statusCode, 404);
 });
 
@@ -57,4 +58,35 @@ test('fluxo mock: UF → login → CNH → PDF', async () => {
 
   const other = await newSession();
   assert.equal((await app.inject({ method: 'GET', url: `/files/${fileId}`, headers: other })).statusCode, 404);
+});
+
+test('fluxo mock do Dev B respeita os contratos de saída', async () => {
+  const headers = await newSession();
+  await call(headers, 'selecionar_uf', { uf: 'SP' });
+  await call(headers, 'iniciar_login');
+
+  const multas = (await call(headers, 'listar_multas')).json();
+  assert.equal(multas.ok, true);
+  assert.equal(multas.result.pontos.total, 11);
+
+  const guia = (await call(headers, 'gerar_guia_multa', { multaId: multas.result.multas[0].id })).json();
+  assert.equal(guia.ok, true);
+  assert.equal(guia.result.multaId, 'm1');
+  assert.match(guia.result.pixCopiaECola, /^000201/);
+
+  const guiaPdf = await app.inject({ method: 'GET', url: `/files/${guia.result.pdfFileId}`, headers });
+  assert.equal(guiaPdf.statusCode, 200);
+  assert.equal(guiaPdf.headers['content-type'], 'application/pdf');
+  assert.equal(guiaPdf.body.slice(0, 5), '%PDF-');
+
+  const veiculos = (await call(headers, 'consultar_veiculos')).json();
+  assert.equal(veiculos.ok, true);
+  assert.equal(veiculos.result.veiculos[0].placa, 'ABC1D23');
+  const crlv = await app.inject({
+    method: 'GET',
+    url: `/files/${veiculos.result.veiculos[0].crlvFileId}`,
+    headers,
+  });
+  assert.equal(crlv.statusCode, 200);
+  assert.equal(crlv.headers['content-type'], 'application/pdf');
 });

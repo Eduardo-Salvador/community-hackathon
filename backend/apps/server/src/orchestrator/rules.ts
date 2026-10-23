@@ -11,11 +11,16 @@ const NEEDS_LOGIN = new Set<ToolName>([
 ]);
 
 // Pré-requisitos são sempre determinísticos: nem a Decisions API nem o modelo de voz podem pular.
-export function checkPrerequisites(tool: ToolName, session: Session): Decision | undefined {
+export function checkPrerequisites(tool: ToolName, session: Session, input?: unknown): Decision | undefined {
+  const identifiers = input && typeof input === 'object' ? input as Record<string, unknown> : {};
+  const canUseFallback =
+    (tool === 'listar_multas' || tool === 'consultar_veiculos') &&
+    (typeof identifiers.cpf === 'string' ||
+      (typeof identifiers.placa === 'string' && typeof identifiers.renavam === 'string'));
   if ((NEEDS_UF.has(tool) || NEEDS_LOGIN.has(tool)) && !session.uf) {
     return { action: 'ask_uf', tool: 'selecionar_uf', reason: 'Selecione o estado antes de continuar' };
   }
-  if (NEEDS_LOGIN.has(tool) && !session.browser?.loggedIn) {
+  if (NEEDS_LOGIN.has(tool) && !session.browser?.loggedIn && !canUseFallback) {
     return { action: 'require_login', tool: 'iniciar_login', reason: 'Faça login no gov.br primeiro' };
   }
   return undefined;
