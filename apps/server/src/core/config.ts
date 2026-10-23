@@ -8,6 +8,12 @@ export type Config = {
   decisionsModel: string;
   decisionsTimeoutMs: number;
   decisionsMinConfidence: number;
+  browserbaseApiKey?: string;
+  browserbaseProjectId?: string;
+  browserTimeoutSec: number;
+  portalUrl: string;
+  loginTimeoutMs: number;
+  loginPollMs: number;
   sessionTtlMs: number;
   fileTtlMs: number;
   maxVoiceTokensPerSession: number;
@@ -24,6 +30,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     decisionsModel: env.DECISIONS_MODEL ?? 'gpt-6-luna',
     decisionsTimeoutMs: 1_500,
     decisionsMinConfidence: 0.6,
+    browserbaseApiKey: env.BROWSERBASE_API_KEY || undefined,
+    browserbaseProjectId: env.BROWSERBASE_PROJECT_ID || undefined,
+    browserTimeoutSec: 15 * 60,
+    // Confirmar a URL do Portal de Serviços da Senatran na A6.
+    portalUrl: env.PORTAL_URL ?? 'https://portalservicos.senatran.serpro.gov.br/',
+    loginTimeoutMs: 5 * 60_000,
+    loginPollMs: 2_000,
     sessionTtlMs: 30 * 60_000,
     fileTtlMs: 15 * 60_000,
     maxVoiceTokensPerSession: 20,

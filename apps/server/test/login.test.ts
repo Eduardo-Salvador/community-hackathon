@@ -1,0 +1,110 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import type { Page } from 'playwright-core';
+import { buildApp } from '../src/app.ts';
+import { createBrowserbaseProvider } from '../src/browser/browserbase.ts';
+import { isLoggedIn } from '../src/browser/manager.ts';
+import type { BrowserProvider } from '../src/browser/types.ts';
+import { loadConfig } from '../src/core/config.ts';
+
+const PORTAL = 'https://portalservicos.senatran.serpro.gov.br/';
+const SSO = 'https://sso.acesso.gov.br/login?client_id=portal';
+
+// Página falsa: o portal redireciona para o SSO do gov.br até "logarmos".
+function fakeProvider() {
+  const state = { url: '', closed: 0, opened: 0 };
+  const provider: BrowserProvider = {
+    async open() {
+      state.opened++;
+      const page = {
+        url: () => state.url,
+        goto: async () => {
+          state.url = SSO;
+        },
+      } as unknown as Page;
+      return { id: `bb-${state.opened}`, liveViewUrl: 'https://live.test/view', page, close: async () => void state.closed++ };
+    },
+  };
+  return { provider, state };
+}
+
+async function setup(browserProvider?: BrowserProvider, env: Record<string, string> = {}) {
+  const config = { ...loadConfig({ MOCK: '0', ...env }), loginPollMs: 10, loginTimeoutMs: 150 };
+  const app = await buildApp(config, { browserProvider });
+  const { id, token } = (await app.inject({ method: 'POST', url: '/session' })).json();
+  const headers = { 'x-session-id': id, authorization: `Bearer ${token}` };
+  const call = (name: string, payload: object = {}) =>
+    app.inject({ method: 'POST', url: `/tools/${name}`, headers, payload });
+  const state = async () => (await app.inject({ method: 'GET', url: '/session/state', headers })).json();
+  await call('selecionar_uf', { uf: 'SP' });
+  return { app, call, state };
+}
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+test('isLoggedIn só aceita o portal depois de sair do SSO', () => {
+  assert.equal(isLoggedIn(SSO, PORTAL), false);
+  assert.equal(isLoggedIn('https://portalservicos.senatran.serpro.gov.br/#/home', PORTAL), true);
+  assert.equal(isLoggedIn('https://evil.example/portalservicos.senatran.serpro.gov.br', PORTAL), false);
+  assert.equal(isLoggedIn('not a url', PORTAL), false);
+});
+
+test('login real: devolve live view, espera o usuário e libera a sessão', async () => {
+  const { provider, state: browser } = fakeProvider();
+  const { app, call, state } = await setup(provider);
+
+  const res = (await call('iniciar_login')).json();
+  assert.deepEqual(res.result, { liveViewUrl: 'https://live.test/view', loggedIn: false });
+  assert.equal((await state()).loggedIn, false);
+  assert.equal((await call('consultar_cnh')).json().code, 'LOGIN_REQUIRED');
+
+  browser.url = 'https://portalservicos.senatran.serpro.gov.br/#/home';
+  await wait(50);
+  assert.equal((await state()).loggedIn, true);
+
+  await app.close();
+  assert.equal(browser.closed, 1, 'navegador fechado ao desligar o servidor');
+});
+
+test('login expira e fecha o navegador', async () => {
+  const { provider, state: browser } = fakeProvider();
+  const { app, call, state } = await setup(provider);
+  await call('iniciar_login');
+  await wait(250);
+  assert.equal((await state()).loggedIn, false);
+  assert.equal(browser.closed, 1);
+  await app.close();
+});
+
+test('novo login fecha o navegador anterior', async () => {
+  const { provider, state: browser } = fakeProvider();
+  const { app, call } = await setup(provider);
+  await call('iniciar_login');
+  await call('iniciar_login');
+  assert.equal(browser.opened, 2);
+  assert.equal(browser.closed, 1);
+  await app.close();
+});
+
+test('sem Browserbase configurado responde 501', async () => {
+  const { app, call } = await setup();
+  const res = await call('iniciar_login');
+  assert.equal(res.statusCode, 501);
+  assert.equal(res.json().code, 'NOT_IMPLEMENTED');
+  await app.close();
+});
+
+test('Browserbase fora do ar vira 503 e pede sessão sem gravação nem captcha automático', async () => {
+  let body: any;
+  const failing = (async (_url: string, init: RequestInit) => {
+    body = JSON.parse(String(init.body));
+    return new Response('{}', { status: 500 });
+  }) as typeof fetch;
+  const config = loadConfig({ MOCK: '0', BROWSERBASE_API_KEY: 'bb', BROWSERBASE_PROJECT_ID: 'p' });
+  const { app, call } = await setup(createBrowserbaseProvider(config, failing));
+  const res = await call('iniciar_login');
+  assert.equal(res.statusCode, 503);
+  assert.equal(res.json().code, 'BROWSER_UNAVAILABLE');
+  assert.deepEqual(body.browserSettings, { recordSession: false, logSession: false, solveCaptchas: false });
+  await app.close();
+});

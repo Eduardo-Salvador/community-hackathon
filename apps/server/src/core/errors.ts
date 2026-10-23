@@ -1,5 +1,8 @@
 export class ToolError extends Error {
-  constructor(public code: 'UF_REQUIRED' | 'LOGIN_REQUIRED' | 'NOT_FOUND' | 'NOT_IMPLEMENTED', message: string) {
+  constructor(
+    public code: 'UF_REQUIRED' | 'LOGIN_REQUIRED' | 'NOT_FOUND' | 'NOT_IMPLEMENTED' | 'BROWSER_UNAVAILABLE',
+    message: string,
+  ) {
     super(message);
   }
 }

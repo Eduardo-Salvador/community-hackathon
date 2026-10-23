@@ -134,5 +134,6 @@ export const ToolErrorCodeSchema = z.enum([
   'LOGIN_REQUIRED',
   'BAD_SOURCE_DATA',
   'NOT_IMPLEMENTED',
+  'BROWSER_UNAVAILABLE',
 ]);
 export type ToolErrorCode = z.infer<typeof ToolErrorCodeSchema>;

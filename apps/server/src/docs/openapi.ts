@@ -31,6 +31,7 @@ const toolErrors = {
   404: { description: 'UNKNOWN_TOOL ou NOT_FOUND', ...json(ref('ToolError')) },
   409: { description: 'UF_REQUIRED, LOGIN_REQUIRED ou BAD_SOURCE_DATA', ...json(ref('ToolError')) },
   501: { description: 'NOT_IMPLEMENTED (serviço real ainda não feito)', ...json(ref('ToolError')) },
+  503: { description: 'BROWSER_UNAVAILABLE (navegador remoto não abriu)', ...json(ref('ToolError')) },
 };
 
 const WS_DOCS = `
@@ -39,6 +40,12 @@ const WS_DOCS = `
 2. Em até 5 s enviar \`{"type":"auth","sessionId":"<id>","token":"<token>"}\`
 3. Servidor responde \`{"type":"ready"}\` e passa a enviar um **StepEvent** por etapa.
 Token errado fecha com código **4401**; JSON inválido com **4400**.
+
+### Login gov.br
+1. \`POST /tools/iniciar_login\` → \`{ liveViewUrl, loggedIn: false }\`
+2. Mostrar \`liveViewUrl\` num iframe; o usuário faz o login (senha, 2FA, captcha) ali
+3. Quando chegar o StepEvent \`login:aguardando_usuario\` com \`ok\`, está logado
+   (\`error\` com \`LOGIN_TIMEOUT\` após 5 min sem login)
 
 ### Voz
 1. \`POST /voice/token\` → token temporário da OpenAI Realtime (já com instruções e tools)

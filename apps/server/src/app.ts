@@ -5,6 +5,9 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import websocket from '@fastify/websocket';
 import { z } from 'zod';
+import { createBrowserbaseProvider } from './browser/browserbase.ts';
+import { BrowserManager } from './browser/manager.ts';
+import type { BrowserProvider } from './browser/types.ts';
 import type { Config } from './core/config.ts';
 import { buildOpenApi } from './docs/openapi.ts';
 import { Orchestrator } from './orchestrator/index.ts';
@@ -23,17 +26,31 @@ declare module 'fastify' {
 
 const WsAuthSchema = z.object({ type: z.literal('auth'), sessionId: z.string(), token: z.string() });
 
-export async function buildApp(config: Config, deps: { fetch: typeof fetch } = { fetch: globalThis.fetch }) {
+type Deps = { fetch: typeof fetch; browserProvider?: BrowserProvider };
+
+export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
+  const fetchImpl = overrides.fetch ?? globalThis.fetch;
+  const deps: Deps = {
+    fetch: fetchImpl,
+    browserProvider:
+      overrides.browserProvider ??
+      (config.browserbaseApiKey ? createBrowserbaseProvider(config, fetchImpl) : undefined),
+  };
   const app = Fastify({
     logger: config.mock ? false : { redact: ['req.headers.authorization', 'req.headers["x-session-id"]'] },
   });
   const events = new EventBus();
   const files = new FileStore(config.fileTtlMs);
+  const browsers = new BrowserManager(config, deps.browserProvider);
   const sessions = new SessionStore(config.sessionTtlMs, (id) => {
     events.drop(id);
     files.dropOwner(id);
+    void browsers.close(id);
   });
-  app.addHook('onClose', async () => sessions.close());
+  app.addHook('onClose', async () => {
+    sessions.close();
+    await browsers.closeAll();
+  });
   const orchestrator = new Orchestrator(createDecisionsClient(config, deps.fetch));
 
   // Corpo vazio com content-type JSON vira {} em vez de erro 400.
@@ -96,9 +113,12 @@ export async function buildApp(config: Config, deps: { fetch: typeof fetch } = {
     '/tools/:name',
     { preHandler: requireSession, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
     async (req, reply) => {
-      const result = await runTool(req.params.name, req.body, { session: req.auth!, config, files }, events);
+      const result = await runTool(req.params.name, req.body, { session: req.auth!, config, files, browsers }, events);
       if (!result.ok) {
-        const status = { UNKNOWN_TOOL: 404, NOT_FOUND: 404, INVALID_INPUT: 400, NOT_IMPLEMENTED: 501 }[result.code] ?? 409;
+        const status =
+          { UNKNOWN_TOOL: 404, NOT_FOUND: 404, INVALID_INPUT: 400, NOT_IMPLEMENTED: 501, BROWSER_UNAVAILABLE: 503 }[
+            result.code
+          ] ?? 409;
         return reply.code(status).send(result);
       }
       return result;
