@@ -27,21 +27,28 @@ export function createBrowserbaseProvider(config: Config, fetchImpl: typeof fetc
 
   return {
     async open(): Promise<RemoteBrowser> {
-      const session = await api<{ id: string; connectUrl: string }>('create', '/sessions', {
-        method: 'POST',
-        body: JSON.stringify({
-          projectId: config.browserbaseProjectId,
-          timeout: config.browserTimeoutSec,
-          // Login gov.br: nada de gravação/log com dados pessoais, e o captcha é do usuário.
-          browserSettings: {
-            recordSession: false,
-            logSession: false,
-            solveCaptchas: false,
-            // Tela estreita: o gov.br usa o layout de celular e o live view fica legível no iframe do site.
-            viewport: { width: 640, height: 800 },
-          },
-        }),
-      });
+      const create = (proxyCountry?: string) =>
+        api<{ id: string; connectUrl: string }>('create', '/sessions', {
+          method: 'POST',
+          body: JSON.stringify({
+            projectId: config.browserbaseProjectId,
+            timeout: config.browserTimeoutSec,
+            // IP residencial no Brasil: o hCaptcha do gov.br rejeita acessos de datacenter estrangeiro.
+            ...(proxyCountry ? { proxies: [{ type: 'browserbase', geolocation: { country: proxyCountry } }] } : {}),
+            // Login gov.br: nada de gravação/log com dados pessoais, e o captcha é do usuário.
+            browserSettings: {
+              recordSession: false,
+              logSession: false,
+              solveCaptchas: false,
+              // Tela estreita: o gov.br usa o layout de celular e o live view fica legível no iframe do site.
+              viewport: { width: 640, height: 800 },
+            },
+          }),
+        });
+      // Plano sem proxy: abre sem, para o login continuar funcionando.
+      const session = config.browserProxyCountry
+        ? await create(config.browserProxyCountry).catch(() => create())
+        : await create();
       try {
         const browser = await chromium.connectOverCDP(session.connectUrl);
         const context = browser.contexts()[0] ?? (await browser.newContext());

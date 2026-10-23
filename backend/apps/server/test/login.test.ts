@@ -130,3 +130,21 @@ test('home pública do portal não conta como login: precisa passar pelo gov.br'
   assert.equal((await state()).loggedIn, false);
   await app.close();
 });
+
+test('sessão pede proxy residencial no Brasil e, se o plano recusar, tenta sem proxy', async () => {
+  const bodies: any[] = [];
+  const recusaProxy = (async (_url: string, init: RequestInit) => {
+    const body = JSON.parse(String(init.body));
+    bodies.push(body);
+    return new Response('{}', { status: body.proxies ? 402 : 500 });
+  }) as typeof fetch;
+  const config = loadConfig({ MOCK: '0', BROWSERBASE_API_KEY: 'bb', BROWSERBASE_PROJECT_ID: 'p' });
+  const { app, call } = await setup(createBrowserbaseProvider(config, recusaProxy));
+  await call('iniciar_login');
+  assert.deepEqual(bodies[0].proxies, [{ type: 'browserbase', geolocation: { country: 'BR' } }]);
+  assert.equal(bodies[1].proxies, undefined, 'segunda tentativa sem proxy');
+  await app.close();
+
+  const off = loadConfig({ MOCK: '0', BROWSERBASE_API_KEY: 'bb', BROWSERBASE_PROJECT_ID: 'p', BROWSERBASE_PROXY: 'off' });
+  assert.equal(off.browserProxyCountry, undefined);
+});
