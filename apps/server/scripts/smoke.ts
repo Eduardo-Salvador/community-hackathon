@@ -64,7 +64,16 @@ if (multas) {
 }
 
 const veiculos = await step('consultar_veiculos');
-if (veiculos) console.log(`   → ${veiculos.veiculos.length} veículo(s)`);
+if (veiculos) {
+  console.log(`   → ${veiculos.veiculos.length} veículo(s)`);
+  const crlvFileId = veiculos.veiculos[0]?.crlvFileId;
+  if (crlvFileId) {
+    const res = await fetch(`${base}/files/${crlvFileId}`, { headers });
+    const ok = res.ok && res.headers.get('content-type') === 'application/pdf';
+    if (!ok) failures++;
+    console.log(`   ${ok ? '→ CRLV-e baixado' : '✖ falha ao baixar CRLV-e'} (${res.status})`);
+  }
+}
 
 ws.close();
 console.log(failures ? `\n✖ ${failures} falha(s)` : '\n✔ fluxo completo OK');

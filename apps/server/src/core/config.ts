@@ -9,6 +9,7 @@ export type Config = {
   infosimplesMultasUrl?: string;
   infosimplesVeiculoUrl?: string;
   senatranMultasUrl?: string;
+  senatranVeiculosUrl?: string;
   zapayGuiaUrl?: string;
   zapayAccessToken?: string;
   zapayCustomerId?: string;
@@ -36,6 +37,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     infosimplesMultasUrl: env.INFOSIMPLES_MULTAS_URL || undefined,
     infosimplesVeiculoUrl: env.INFOSIMPLES_VEICULO_URL || undefined,
     senatranMultasUrl: env.SENATRAN_MULTAS_URL || undefined,
+    senatranVeiculosUrl: env.SENATRAN_VEICULOS_URL || undefined,
     zapayGuiaUrl: env.ZAPAY_GUIA_URL || undefined,
     zapayAccessToken: env.ZAPAY_ACCESS_TOKEN || undefined,
     zapayCustomerId: env.ZAPAY_CUSTOMER_ID || undefined,

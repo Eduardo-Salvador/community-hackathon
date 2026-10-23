@@ -80,4 +80,11 @@ test('fluxo mock do Dev B respeita os contratos de saída', async () => {
   const veiculos = (await call(headers, 'consultar_veiculos')).json();
   assert.equal(veiculos.ok, true);
   assert.equal(veiculos.result.veiculos[0].placa, 'ABC1D23');
+  const crlv = await app.inject({
+    method: 'GET',
+    url: `/files/${veiculos.result.veiculos[0].crlvFileId}`,
+    headers,
+  });
+  assert.equal(crlv.statusCode, 200);
+  assert.equal(crlv.headers['content-type'], 'application/pdf');
 });
