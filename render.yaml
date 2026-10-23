@@ -32,6 +32,7 @@ services:
       # OpenAI
       - key: OPENAI_API_KEY
         sync: false
+      # PENDENTE: confirmar o nome do modelo Realtime na conta da OpenAI.
       - key: VOICE_MODEL
         value: gpt-realtime
       - key: DECISIONS
@@ -50,10 +51,6 @@ services:
         sync: false
       - key: PORTAL_URL
         value: https://portalservicos.senatran.serpro.gov.br/
-      - key: SENATRAN_MULTAS_URL
-        sync: false
-      - key: SENATRAN_VEICULOS_URL
-        sync: false
       # Infosimples
       - key: INFOSIMPLES_TOKEN
         sync: false

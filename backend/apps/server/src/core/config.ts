@@ -16,6 +16,8 @@ export type Config = {
   infosimplesVeiculoUrl?: string;
   senatranMultasUrl?: string;
   senatranVeiculosUrl?: string;
+  senatranCnhUrl: string;
+  portalLoginUrl: string;
   zapayGuiaUrl?: string;
   zapayAccessToken?: string;
   zapayCustomerId?: string;
@@ -44,6 +46,7 @@ function inteiroPositivo(valor: string | undefined, padrao: number): number {
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+  const portal = (env.PORTAL_URL || 'https://portalservicos.senatran.serpro.gov.br/').replace(/\/?$/, '/');
   return {
     port: Number(env.PORT ?? 3000),
     mock: env.MOCK !== '0',
@@ -64,8 +67,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     infosimplesToken: env.INFOSIMPLES_TOKEN || undefined,
     infosimplesMultasUrl: env.INFOSIMPLES_MULTAS_URL || undefined,
     infosimplesVeiculoUrl: env.INFOSIMPLES_VEICULO_URL || undefined,
-    senatranMultasUrl: env.SENATRAN_MULTAS_URL || undefined,
-    senatranVeiculosUrl: env.SENATRAN_VEICULOS_URL || undefined,
+    // Rotas do catálogo oficial do portal (/portalservicos-ws/funcionalidade/home).
+    senatranMultasUrl: env.SENATRAN_MULTAS_URL || `${portal}#/infracoes/consultar`,
+    senatranVeiculosUrl: env.SENATRAN_VEICULOS_URL || `${portal}#/veiculos/meus-veiculos`,
+    senatranCnhUrl: env.SENATRAN_CNH_URL || `${portal}#/habilitacao/consultar`,
+    // Tela protegida: abrir ela força o redirecionamento para o login do gov.br (a home é pública).
+    portalLoginUrl: env.PORTAL_LOGIN_URL || `${portal}#/infracoes/consultar`,
     zapayGuiaUrl: env.ZAPAY_GUIA_URL || undefined,
     zapayAccessToken: env.ZAPAY_ACCESS_TOKEN || undefined,
     zapayCustomerId: env.ZAPAY_CUSTOMER_ID || undefined,
@@ -82,7 +89,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     // Cobre a conversa inteira; o navegador é fechado antes se a sessão expirar (30 min sem uso).
     browserTimeoutSec: 60 * 60,
     // Confirmar a URL do Portal de Serviços da Senatran na A6.
-    portalUrl: env.PORTAL_URL ?? 'https://portalservicos.senatran.serpro.gov.br/',
+    portalUrl: portal,
     loginTimeoutMs: 5 * 60_000,
     loginPollMs: 2_000,
     sessionTtlMs: 30 * 60_000,

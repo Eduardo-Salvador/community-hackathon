@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { CnhSchema } from '@hackathon/contracts';
-import { findDownloadLink, fetchFile, openSection, pageText, screenshot } from '../../browser/portal.ts';
+import { findDownloadLink, fetchFile, pageText, screenshot } from '../../browser/portal.ts';
 import { sleep, ToolError } from '../../core/errors.ts';
 import { fromPortal } from '../../core/untrusted.ts';
 import { defineTool, type ToolContext } from '../../tools/types.ts';
@@ -19,8 +19,7 @@ const MOCK_PDF = Buffer.from(
     '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n',
 );
 
-// Textos de menu do portal. Confirmar no portal real.
-const CNH_SECTION = /condutor|minha cnh|habilita[cç][aã]o/i;
+// Texto do botão de download na tela da CNH. Confirmar no portal real.
 const CNH_DOWNLOAD = /baixar|download|pdf|cnh digital|cnh-e|imprimir/i;
 
 // O que o modelo devolve; depois normalizamos e validamos com o CnhSchema do contrato.
@@ -43,7 +42,8 @@ function loggedPage({ session, browsers }: ToolContext) {
 async function consultarReal(ctx: ToolContext) {
   const page = loggedPage(ctx);
   ctx.emit('abrindo_secao_cnh', 'start');
-  await openSection(page, CNH_SECTION);
+  // Rota "Consultar Minha Habilitação" do catálogo oficial do portal.
+  await page.goto(ctx.config.senatranCnhUrl, { waitUntil: 'domcontentloaded' });
   ctx.emit('abrindo_secao_cnh', 'ok');
 
   ctx.emit('extraindo_dados', 'start');
@@ -68,7 +68,7 @@ async function baixarReal(ctx: ToolContext) {
   ctx.emit('baixando_pdf', 'start');
   let href = await findDownloadLink(page, CNH_DOWNLOAD);
   if (!href) {
-    await openSection(page, CNH_SECTION).catch(() => {});
+    await page.goto(ctx.config.senatranCnhUrl, { waitUntil: 'domcontentloaded' }).catch(() => {});
     href = await findDownloadLink(page, CNH_DOWNLOAD);
   }
   if (href) {

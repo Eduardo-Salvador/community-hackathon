@@ -70,6 +70,7 @@ function setup(portalKeepAliveMs = 20) {
 test('portal é recarregado enquanto a sessão está ativa e para ao fechar', async () => {
   const { s, manager, session, emit } = setup();
   await manager.startLogin(session, emit);
+  await wait(20); // usuário fica no gov.br até concluir o login
   s.url = PORTAL;
   await wait(100);
   assert.ok(s.reloads >= 2, `reloads=${s.reloads}`);
@@ -85,6 +86,7 @@ test('não recarrega enquanto uma tool está usando a página', async () => {
   // Intervalos maiores: timers do Windows têm ~15 ms de resolução.
   const { s, manager, session, emit } = setup(120);
   await manager.startLogin(session, emit);
+  await wait(20); // usuário fica no gov.br até concluir o login
   s.url = PORTAL;
   await wait(30);
   manager.getPage(session.id);
@@ -98,6 +100,7 @@ test('não recarrega enquanto uma tool está usando a página', async () => {
 test('gov.br deslogou: avisa, marca deslogado e fecha o navegador', async () => {
   const { s, manager, session, events, emit } = setup();
   await manager.startLogin(session, emit);
+  await wait(20); // usuário fica no gov.br até concluir o login
   s.url = PORTAL;
   await wait(15);
   s.logoutOnReload = true;

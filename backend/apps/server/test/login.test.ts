@@ -58,6 +58,7 @@ test('login real: devolve live view, espera o usuário e libera a sessão', asyn
   assert.equal((await state()).loggedIn, false);
   assert.equal((await call('consultar_cnh')).json().code, 'LOGIN_REQUIRED');
 
+  await wait(30); // usuário fica no gov.br até concluir o login
   browser.url = 'https://portalservicos.senatran.serpro.gov.br/#/home';
   await wait(50);
   assert.equal((await state()).loggedIn, true);
@@ -106,5 +107,21 @@ test('Browserbase fora do ar vira 503 e pede sessão sem gravação nem captcha 
   assert.equal(res.statusCode, 503);
   assert.equal(res.json().code, 'BROWSER_UNAVAILABLE');
   assert.deepEqual(body.browserSettings, { recordSession: false, logSession: false, solveCaptchas: false });
+  await app.close();
+});
+
+test('home pública do portal não conta como login: precisa passar pelo gov.br', async () => {
+  // Portal que nunca redireciona para o gov.br (ex.: abriu a home pública).
+  const page = {
+    url: () => 'https://portalservicos.senatran.serpro.gov.br/#/home',
+    goto: async () => {},
+  } as unknown as Page;
+  const provider: BrowserProvider = {
+    open: async () => ({ id: 'bb', liveViewUrl: 'https://live.test/view', page, close: async () => {} }),
+  };
+  const { app, call, state } = await setup(provider);
+  await call('iniciar_login');
+  await wait(60);
+  assert.equal((await state()).loggedIn, false);
   await app.close();
 });

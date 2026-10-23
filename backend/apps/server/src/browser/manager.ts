@@ -10,6 +10,14 @@ type Emit = (step: string, status: StepEvent['status'], data?: unknown) => void;
 
 const GOVBR_SSO = /(^|\.)acesso\.gov\.br$/;
 
+export function isGovBrSso(currentUrl: string): boolean {
+  try {
+    return GOVBR_SSO.test(new URL(currentUrl).hostname);
+  } catch {
+    return false;
+  }
+}
+
 // Logado = saiu do SSO do gov.br e voltou para o portal configurado.
 export function isLoggedIn(currentUrl: string, portalUrl: string): boolean {
   try {
@@ -49,7 +57,7 @@ export class BrowserManager {
     emit('abrindo_navegador', 'ok');
 
     emit('abrindo_portal', 'start');
-    await browser.page.goto(this.config.portalUrl, { waitUntil: 'domcontentloaded' });
+    await browser.page.goto(this.config.portalLoginUrl, { waitUntil: 'domcontentloaded' });
     emit('abrindo_portal', 'ok');
 
     emit('aguardando_usuario', 'start', { liveViewUrl: browser.liveViewUrl });
@@ -81,9 +89,13 @@ export class BrowserManager {
 
   private watchLogin(session: Session, browser: RemoteBrowser, emit: Emit) {
     const deadline = Date.now() + this.config.loginTimeoutMs;
+    // A home do portal é pública: só conta como logado depois de passar pelo gov.br e voltar.
+    let passedSso = false;
     const timer = setInterval(() => {
       if (this.browsers.get(session.id) !== browser) return clearInterval(timer);
-      if (isLoggedIn(browser.page.url(), this.config.portalUrl)) {
+      const url = browser.page.url();
+      if (isGovBrSso(url)) passedSso = true;
+      if (passedSso && isLoggedIn(url, this.config.portalUrl)) {
         clearInterval(timer);
         this.watchers.delete(session.id);
         if (session.browser) session.browser.loggedIn = true;
