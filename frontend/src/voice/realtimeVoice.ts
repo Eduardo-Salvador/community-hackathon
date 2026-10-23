@@ -87,6 +87,12 @@ export class RealtimeVoiceClient implements VoiceClient {
     this.send({ type: 'output_audio_buffer.clear' });
   }
 
+  setMuted(muted: boolean): void {
+    this.microphone?.getAudioTracks().forEach((track) => {
+      track.enabled = !muted;
+    });
+  }
+
   stop(): void {
     this.unsubscribe?.();
     this.unsubscribe = undefined;

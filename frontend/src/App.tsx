@@ -64,7 +64,7 @@ export function App() {
           {voiceOpen ? (
             <VoiceMode voice={voice} onExit={closeVoice} onEnd={end} onUnavailable={markVoiceUnavailable} />
           ) : state.items.length === 0 ? (
-            <Home onSend={store.send} onMic={openVoice} micDisabled={voiceUnavailable} />
+            <Home onStart={openVoice} />
           ) : (
             <Chat state={state} onMic={openVoice} onEnd={end} micDisabled={voiceUnavailable} />
           )}

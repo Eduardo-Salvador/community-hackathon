@@ -8,7 +8,7 @@ export const UF_QUESTION = 'Claro! Isso é com o DETRAN. De qual estado você é
 export const PIX_READY = 'Prontinho. Copie o código e pague no app do seu banco.';
 export const BOLETO_READY = 'Prontinho. Copie a linha digitável e pague no app do seu banco.';
 export const LOGIN_TIMEOUT = 'O tempo para entrar no gov.br acabou. Quer tentar de novo?';
-export const GOVBR_EXPIRED = 'Sua sessão no gov.br caiu. Entre de novo aqui embaixo para continuar.';
+export const GOVBR_EXPIRED = 'Sua sessão no gov.br caiu. Entre de novo aqui do lado para continuar.';
 export const LOGIN_AGAIN_DONE = 'Pronto, você entrou de novo. O que você precisa?';
 export const CNH_RECEIPT_DOWNLOADED =
   'O portal não liberou o PDF agora, então baixei um comprovante (imagem da tela da sua CNH).';
@@ -36,8 +36,8 @@ export function guiaReadyMessage(guia: Guia): string {
 }
 
 export function loginMessage(action?: Action): string {
-  if (!action) return 'Para continuar, entre na sua conta gov.br aqui embaixo. Você digita a senha direto no gov.br, eu não vejo nada disso.';
-  return `Para ver ${SUBJECTS[action.type]}, entre na sua conta gov.br aqui embaixo. Você digita a senha direto no gov.br, eu não vejo nada disso.`;
+  if (!action) return 'Para continuar, entre na sua conta gov.br aqui do lado. Você digita a senha direto no gov.br, eu não vejo nada disso.';
+  return `Para ver ${SUBJECTS[action.type]}, entre na sua conta gov.br aqui do lado. Você digita a senha direto no gov.br, eu não vejo nada disso.`;
 }
 
 export function ufSaved(uf: string): string {

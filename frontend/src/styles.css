@@ -1545,3 +1545,40 @@ iframe:focus-visible {
     display: none;
   }
 }
+
+.start{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:16px 24px 56px;min-height:0;overflow:hidden}
+.start__particles{position:absolute;left:50%;top:52%;width:min(480px,90vw);height:min(480px,90vw);transform:translate(-50%,-50%);pointer-events:none;z-index:0}
+.start__intro{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center}
+.start__title{margin:0;font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:clamp(56px,9vw,104px);line-height:.95;letter-spacing:-.02em}
+.start__subtitle{margin:0;font-size:20px;color:#4F5B54}
+.start__button{position:relative;z-index:1;overflow:hidden;display:flex;align-items:center;height:64px;padding:0 44px;border-radius:999px;border:none;background:#009C3B;color:#fff;font:inherit;font-size:18px;font-weight:600;cursor:pointer;box-shadow:0 14px 30px rgba(0,156,59,.25)}
+.start__flow{position:absolute;inset:0;background:linear-gradient(90deg,#1E4FBF 0%,#009C3B 33%,#E8C800 66%,#1E4FBF 100%);background-size:200% 100%;background-repeat:repeat-x;animation:startSlide 3.5s linear infinite}
+.start__glaze{position:absolute;top:-10%;left:0;width:30%;height:120%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:startGlaze 2.6s ease-in-out infinite}
+.start__label{position:relative;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+@keyframes startSlide{from{background-position:0% 50%}to{background-position:200% 50%}}
+@keyframes startGlaze{0%{transform:translateX(-160%) skewX(-20deg)}55%,100%{transform:translateX(260%) skewX(-20deg)}}
+@media (prefers-reduced-motion:reduce){.start__flow,.start__glaze{animation:none}}
+
+.call{flex:1;display:flex;flex-direction:column;min-height:0}
+.call__stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px) minmax(0,1fr);align-items:center;gap:32px;padding:0 40px 16px;overflow:auto}
+.call__user{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;transition:opacity .4s ease}
+.call__bubble{position:relative;max-width:240px;padding:12px 16px;border-radius:18px;background:#fff;border:1px solid #E2E7E3;box-shadow:0 10px 24px rgba(15,26,21,.08);font-size:16px;font-weight:600;line-height:1.35;transform:rotate(-2deg)}
+.call__bubble::after{content:'';position:absolute;right:-7px;top:22px;width:12px;height:12px;background:#fff;border-right:1px solid #E2E7E3;border-top:1px solid #E2E7E3;transform:rotate(45deg)}
+.call__who{display:block;margin-bottom:2px;font-size:11px;font-weight:600;color:#6B7770}
+.call__center{justify-self:center;width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.call__particles{width:400px;max-width:100%;height:auto;aspect-ratio:1}
+.call__speech{margin:0;min-height:70px;max-width:460px;font-family:'Instrument Serif',Georgia,serif;font-size:30px;line-height:1.15;letter-spacing:-.01em}
+.call__card{justify-self:start;width:100%;max-width:480px;display:flex;flex-direction:column;gap:16px;opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
+.call__card--on{opacity:1;transform:none}
+.call__controls{padding:8px 24px 32px;display:flex;justify-content:center;align-items:center;gap:16px}
+.call__status{display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;background:#F3F5F3;font-size:14px;font-weight:600;color:#1F2A24}
+.call__dot{width:8px;height:8px;border-radius:4px}
+.call__round{width:44px;height:44px;border-radius:22px;border:none;background:#F3F5F3;color:#0F1A15;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.call__round--muted{background:#0F1A15;color:#fff}
+.call__round--end{background:#FDE8E5}
+.call__round:disabled{opacity:.5;cursor:default}
+@media (max-width:1000px){.call__stage{grid-template-columns:1fr;justify-items:center;padding:0 16px 16px}.call__user,.call__card,.call__center{justify-self:center}.call__particles{width:260px}}
+.uf-option{display:flex;align-items:center;justify-content:center}
+.uf-picked{align-items:center;text-align:center;gap:10px;padding:32px}
+.uf-picked__code{font-family:'Instrument Serif',Georgia,serif;font-size:88px;line-height:1}
+.uf-picked__ok{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#EEF5F0;color:#1F6B47;font-size:13px;font-weight:600}
