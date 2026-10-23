@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type { Service, StepEvent, ToolInputs, ToolName } from '@hackathon/contracts';
+import type { Extractor } from '../ai/extract.ts';
 import type { BrowserManager } from '../browser/manager.ts';
 import type { Config } from '../core/config.ts';
 import type { FileStore } from '../core/files.ts';
@@ -11,6 +12,8 @@ export type ToolContext = {
   files: FileStore;
   // Dev B: use ctx.browsers.getPage(ctx.session.id) para navegar logado.
   browsers: BrowserManager;
+  // Extrai JSON tipado do texto de uma página (OpenAI, GPT-6 Astra).
+  extractor: Extractor;
   emit: (step: string, status: StepEvent['status'], data?: unknown) => void;
 };
 

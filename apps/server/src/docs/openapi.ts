@@ -31,6 +31,7 @@ const toolErrors = {
   404: { description: 'UNKNOWN_TOOL ou NOT_FOUND', ...json(ref('ToolError')) },
   409: { description: 'UF_REQUIRED, LOGIN_REQUIRED ou BAD_SOURCE_DATA', ...json(ref('ToolError')) },
   501: { description: 'NOT_IMPLEMENTED (serviço real ainda não feito)', ...json(ref('ToolError')) },
+  502: { description: 'EXTRACTION_FAILED (falha ao ler a página do portal)', ...json(ref('ToolError')) },
   503: { description: 'BROWSER_UNAVAILABLE (navegador remoto não abriu)', ...json(ref('ToolError')) },
 };
 

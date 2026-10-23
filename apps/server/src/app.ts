@@ -5,6 +5,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import websocket from '@fastify/websocket';
 import { z } from 'zod';
+import { createExtractor } from './ai/extract.ts';
 import { createBrowserbaseProvider } from './browser/browserbase.ts';
 import { BrowserManager } from './browser/manager.ts';
 import type { BrowserProvider } from './browser/types.ts';
@@ -42,6 +43,7 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
   const events = new EventBus();
   const files = new FileStore(config.fileTtlMs);
   const browsers = new BrowserManager(config, deps.browserProvider);
+  const extractor = createExtractor(config, deps.fetch);
   const sessions = new SessionStore(config.sessionTtlMs, (id) => {
     events.drop(id);
     files.dropOwner(id);
@@ -113,12 +115,17 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
     '/tools/:name',
     { preHandler: requireSession, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
     async (req, reply) => {
-      const result = await runTool(req.params.name, req.body, { session: req.auth!, config, files, browsers }, events);
+      const result = await runTool(req.params.name, req.body, { session: req.auth!, config, files, browsers, extractor }, events);
       if (!result.ok) {
         const status =
-          { UNKNOWN_TOOL: 404, NOT_FOUND: 404, INVALID_INPUT: 400, NOT_IMPLEMENTED: 501, BROWSER_UNAVAILABLE: 503 }[
-            result.code
-          ] ?? 409;
+          {
+            UNKNOWN_TOOL: 404,
+            NOT_FOUND: 404,
+            INVALID_INPUT: 400,
+            NOT_IMPLEMENTED: 501,
+            EXTRACTION_FAILED: 502,
+            BROWSER_UNAVAILABLE: 503,
+          }[result.code] ?? 409;
         return reply.code(status).send(result);
       }
       return result;

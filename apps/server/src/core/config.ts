@@ -4,6 +4,8 @@ export type Config = {
   corsOrigin: string;
   openaiApiKey?: string;
   voiceModel: string;
+  extractionModel: string;
+  extractionTimeoutMs: number;
   decisionsEnabled: boolean;
   decisionsModel: string;
   decisionsTimeoutMs: number;
@@ -26,6 +28,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     corsOrigin: env.CORS_ORIGIN ?? 'http://localhost:5173',
     openaiApiKey: env.OPENAI_API_KEY || undefined,
     voiceModel: env.VOICE_MODEL ?? 'gpt-realtime',
+    extractionModel: env.EXTRACTION_MODEL ?? 'gpt-6-astra',
+    extractionTimeoutMs: 30_000,
     decisionsEnabled: env.DECISIONS !== '0',
     decisionsModel: env.DECISIONS_MODEL ?? 'gpt-6-luna',
     decisionsTimeoutMs: 1_500,

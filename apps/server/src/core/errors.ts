@@ -1,6 +1,12 @@
 export class ToolError extends Error {
   constructor(
-    public code: 'UF_REQUIRED' | 'LOGIN_REQUIRED' | 'NOT_FOUND' | 'NOT_IMPLEMENTED' | 'BROWSER_UNAVAILABLE',
+    public code:
+      | 'UF_REQUIRED'
+      | 'LOGIN_REQUIRED'
+      | 'NOT_FOUND'
+      | 'NOT_IMPLEMENTED'
+      | 'BROWSER_UNAVAILABLE'
+      | 'EXTRACTION_FAILED',
     message: string,
   ) {
     super(message);

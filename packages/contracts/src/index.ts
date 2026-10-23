@@ -104,7 +104,8 @@ export const ToolResults = {
   selecionar_uf: z.object({ uf: UFSchema }),
   iniciar_login: z.object({ liveViewUrl: z.string(), loggedIn: z.boolean() }),
   consultar_cnh: CnhSchema,
-  baixar_cnh: z.object({ fileId: z.string() }),
+  // tipo "comprovante": o portal não ofereceu o PDF e devolvemos um print (PNG) da tela da CNH.
+  baixar_cnh: z.object({ fileId: z.string(), tipo: z.enum(['pdf', 'comprovante']) }),
   listar_multas: z.object({ multas: z.array(MultaSchema), pontos: ResumoPontosSchema }),
   gerar_guia_multa: GuiaSchema,
   consultar_veiculos: z.object({ veiculos: z.array(VeiculoSchema) }),
@@ -135,5 +136,6 @@ export const ToolErrorCodeSchema = z.enum([
   'BAD_SOURCE_DATA',
   'NOT_IMPLEMENTED',
   'BROWSER_UNAVAILABLE',
+  'EXTRACTION_FAILED',
 ]);
 export type ToolErrorCode = z.infer<typeof ToolErrorCodeSchema>;
