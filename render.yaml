@@ -58,16 +58,8 @@ services:
         sync: false
       - key: INFOSIMPLES_VEICULO_URL
         sync: false
-      # Zapay
-      - key: ZAPAY_GUIA_URL
-        sync: false
-      - key: ZAPAY_ACCESS_TOKEN
-        sync: false
-      - key: ZAPAY_CUSTOMER_ID
-        sync: false
-      - key: ZAPAY_AUTH_SCHEME
-        value: JWT
-      - key: ZAPAY_API_VERSION
-        value: v2.0
       - key: ADAPTER_TIMEOUT_MS
         value: "15000"
+      # Guia oficial é gerada no portal (login gov.br). 1 = guia de demonstração marcada.
+      - key: GUIA_DEMO
+        value: "0"

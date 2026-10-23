@@ -8,7 +8,6 @@ import {
   mapearMultasInfosimples,
   mapearVeiculoInfosimples,
 } from '../src/adapters/infosimples/mapper.ts';
-import { ZapayClient } from '../src/adapters/zapay/client.ts';
 import { calcularPontos } from '../src/domain/pontos/index.ts';
 
 test('cliente HTTP aplica timeout e retorna erro tipado sem vazar a resposta', async () => {
@@ -92,78 +91,6 @@ test('mapper da Infosimples normaliza veículo e valida o contrato', () => {
     recall: ['Airbag'],
   });
   assert.equal(VeiculoSchema.safeParse(veiculo).success, true);
-});
-
-test('Zapay envia autenticação/versionamento e mapeia Pix e boleto', async () => {
-  let requestHeaders: Headers | undefined;
-  let requestBody: Record<string, unknown> | undefined;
-  const fetchMock = (async (url: string | URL | Request, init?: RequestInit) => {
-    requestHeaders = new Headers(init?.headers);
-    if (String(url).endsWith('/guia.pdf')) {
-      return new Response(Buffer.from('%PDF-1.4\n%%EOF\n'), {
-        headers: { 'content-type': 'application/pdf' },
-      });
-    }
-    requestBody = JSON.parse(String(init?.body));
-    return new Response(
-      JSON.stringify({
-        order_id: 'order-1',
-        charges: [
-          {
-            last_transaction: {
-              pix: { qr_code: '00020101021226800014br.gov.bcb.pix-test' },
-              bank_slip: {
-                line: '34191.75462 24615.781234 41234.510000 3 83840000003090',
-                pdf: 'https://api.b2b.usezapay.test/guia.pdf',
-              },
-            },
-          },
-        ],
-      }),
-      { status: 200, headers: { 'content-type': 'application/json' } },
-    );
-  }) as typeof fetch;
-  const client = new ZapayClient(
-    {
-      guiaUrl: 'https://api.b2b.usezapay.test/orders',
-      accessToken: 'jwt-secreto',
-      customerId: 'customer-1',
-      authScheme: 'JWT',
-      apiVersion: 'v2.0',
-    },
-    createHttpClient(fetchMock),
-  );
-
-  const resultado = await client.gerarGuia({
-    multaId: 'm1',
-    descricao: 'Avançar sinal vermelho',
-    valorCentavos: 17608,
-    descontoSneAplicado: true,
-  });
-
-  assert.equal(requestHeaders?.get('authorization'), 'JWT jwt-secreto');
-  assert.equal(requestHeaders?.get('accept'), 'application/json; version=v2.0');
-  assert.deepEqual(requestBody, {
-    customer_id: 'customer-1',
-    external_id: 'm1',
-    closed: true,
-    amount: 17608,
-    items: [
-      {
-        product_id: 'm1',
-        amount: 17608,
-        description: 'Avançar sinal vermelho',
-        type: 'vehicle_debt',
-      },
-    ],
-    payments: [{ payment_method: 'pix', amount: 17608, pix: {} }],
-    metadata: { multa_id: 'm1', desconto_sne_aplicado: true },
-  });
-  assert.equal(resultado.guia.multaId, 'm1');
-  assert.equal(resultado.guia.pixCopiaECola, '00020101021226800014br.gov.bcb.pix-test');
-  assert.equal(resultado.pdfUrl, 'https://api.b2b.usezapay.test/guia.pdf');
-  assert.equal(GuiaSchema.safeParse(resultado.guia).success, true);
-  assert.equal((await client.baixarPdf(resultado.pdfUrl)).subarray(0, 5).toString(), '%PDF-');
 });
 
 test('adapters distinguem configuração ausente e erro retornado pelo fornecedor', async () => {

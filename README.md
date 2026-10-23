@@ -22,6 +22,7 @@ Variáveis: veja [`backend/.env.example`](backend/.env.example).
 ## Pendências de configuração
 
 - **`VOICE_MODEL`** (voz do site): o padrão `gpt-realtime` ainda não foi validado com chave real. Confirme no painel da OpenAI o nome do modelo Realtime da conta e ajuste a variável. Sem isso, `POST /voice/token` pode responder `502 VOICE_UPSTREAM_ERROR`.
+- **Guia de pagamento**: gerada no próprio portal da Senatran (boleto/Pix oficial do SNE) com o login gov.br, sem provedor de pagamento. A tela de pagamento ainda precisa ser validada com login real; até lá, `GUIA_DEMO=1` devolve uma guia marcada como demonstração (`demonstracao: true`, "NÃO PAGUE" no texto e no PDF).
 - **Portal Senatran**: as rotas (`#/infracoes/consultar`, `#/veiculos/meus-veiculos`, `#/habilitacao/consultar`) vêm do catálogo oficial do portal e já são o padrão. Os textos/telas internas ainda precisam ser validados no primeiro login real.
 
 ## Deploy (Render)
