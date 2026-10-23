@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useStore } from '../../conversation/context';
 import type { Card } from '../../conversation/store';
 import { CheckIcon, LockIcon } from '../icons';
@@ -5,9 +6,18 @@ import { CheckIcon, LockIcon } from '../icons';
 type LoginCardProps = { turn: string; card: Extract<Card, { type: 'login' }> };
 
 const MOCK_LIVE_VIEW = 'about:blank';
+const MOCK_LOGIN_DELAY = 4000;
 
 export function LoginCard({ turn, card }: LoginCardProps) {
   const store = useStore();
+  const mock = card.liveViewUrl === MOCK_LIVE_VIEW;
+
+  useEffect(() => {
+    if (!mock || card.status !== 'waiting') return;
+    const timer = setTimeout(() => void store.simulateLogin(), MOCK_LOGIN_DELAY);
+    return () => clearTimeout(timer);
+  }, [mock, card.status, store]);
+
   if (card.status === 'done') {
     return (
       <div className="login__done">
@@ -23,11 +33,9 @@ export function LoginCard({ turn, card }: LoginCardProps) {
       </button>
     );
   }
-  const mock = card.liveViewUrl === MOCK_LIVE_VIEW;
   const live = card.liveViewUrl && !mock && /^https:\/\//.test(card.liveViewUrl);
   return (
-    <>
-      <div className="login">
+    <div className="login">
         <div className="login__bar">
           <LockIcon />
           <span>Janela segura · sso.acesso.gov.br</span>
@@ -47,12 +55,6 @@ export function LoginCard({ turn, card }: LoginCardProps) {
             <span>CPF, senha e verificação em duas etapas são digitados aqui, direto no gov.br.</span>
           </div>
         )}
-      </div>
-      {mock && (
-        <button type="button" className="btn btn--sm" style={{ alignSelf: 'flex-start' }} onClick={store.simulateLogin}>
-          Simular login concluído
-        </button>
-      )}
-    </>
+    </div>
   );
 }

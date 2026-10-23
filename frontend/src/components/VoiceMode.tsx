@@ -1,31 +1,26 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ApiError } from '../api/client';
 import { useStore } from '../conversation/context';
-import { thinkingCaption } from '../conversation/copy';
-import { TONES } from '../lib/points';
+import type { AssistantItem } from '../conversation/store';
+import { ParticleField } from '../lib/particles';
 import type { VoiceClient, VoiceMode as Mode } from '../voice/types';
-import { LoginCard } from './cards/LoginCard';
+import { CardView } from './cards/CardView';
 import { Header } from './Header';
-import { CloseIcon, KeyboardIcon } from './icons';
-import { Mist } from './Mist';
+import { CloseIcon } from './icons';
 
-const MODES: Record<Mode, { label: string; tone: { bg: string; fg: string }; action: string }> = {
-  conectando: { label: 'Conectando', tone: TONES.neutral, action: 'Conectando…' },
-  ouvindo: { label: 'Ouvindo', tone: TONES.ok, action: 'Parar e enviar' },
-  pensando: { label: 'Consultando o DETRAN', tone: TONES.warn, action: 'Cancelar' },
-  falando: { label: 'Respondendo', tone: TONES.neutral, action: 'Interromper e falar' },
+const PARTICLE_MODE: Record<Mode, string> = {
+  conectando: 'buscando',
+  ouvindo: 'ouvindo',
+  pensando: 'buscando',
+  falando: 'respondendo',
 };
 
-const LISTEN_HINT = 'Fale do seu jeito. Toque para parar quando terminar.';
-
-function voiceMistSize(): number {
-  return Math.round(Math.max(160, Math.min(380, window.innerWidth * 0.8, window.innerHeight * 0.38)));
-}
-
-function splitFirstSentence(text: string): [string, string] {
-  const match = text.match(/^(.+?[.!?])\s+(.*)$/s);
-  return match ? [match[1] ?? text, match[2] ?? ''] : [text, ''];
-}
+const STATUS: Record<Mode, { label: string; dot: string }> = {
+  conectando: { label: 'Conectando…', dot: '#E0B000' },
+  ouvindo: { label: 'Ouvindo você…', dot: '#009C3B' },
+  pensando: { label: 'Consultando o DETRAN…', dot: '#E0B000' },
+  falando: { label: 'Tupi está falando', dot: '#1E4FBF' },
+};
 
 function failureMessage(error: unknown): string {
   if (error instanceof DOMException && error.name === 'NotAllowedError') return 'Permita o uso do microfone para falar.';
@@ -44,11 +39,26 @@ export function VoiceMode({ voice, onExit, onEnd, onUnavailable }: VoiceModeProp
   const store = useStore();
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const [mode, setMode] = useState<Mode>('conectando');
+  const [muted, setMuted] = useState(false);
   const [userText, setUserText] = useState('');
   const [assistantText, setAssistantText] = useState('');
   const [failure, setFailure] = useState<string>();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fieldRef = useRef<ParticleField>();
   const callbacks = useRef({ onUnavailable });
   callbacks.current = { onUnavailable };
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const field = new ParticleField(canvasRef.current);
+    fieldRef.current = field;
+    field.startParticles();
+    return () => field.stop();
+  }, []);
+
+  useEffect(() => {
+    if (fieldRef.current) fieldRef.current.mode = PARTICLE_MODE[mode];
+  }, [mode]);
 
   useEffect(() => {
     let alive = true;
@@ -59,7 +69,11 @@ export function VoiceMode({ voice, onExit, onEnd, onUnavailable }: VoiceModeProp
     };
     voice
       .start({
-        onMode: (next) => alive && setMode(next),
+        onMode: (next) => {
+          if (!alive) return;
+          setMode(next);
+          if (next === 'ouvindo') setMuted(false);
+        },
         onUserText: (text) => {
           if (!alive) return;
           setUserText(text);
@@ -85,76 +99,67 @@ export function VoiceMode({ voice, onExit, onEnd, onUnavailable }: VoiceModeProp
     return () => document.removeEventListener('keydown', onKey);
   }, [onExit]);
 
-  const primary = () => {
-    if (mode === 'ouvindo') voice.submit();
-    else if (mode === 'pensando') voice.cancel();
-    else if (mode === 'falando') voice.interrupt();
+  const toggleMute = () => {
+    const next = !muted;
+    setMuted(next);
+    voice.setMuted(next);
   };
 
   const turn = store.lastAssistant();
-  const pendingLogin = turn?.card?.type === 'login' && turn.card.status !== 'done' ? { id: turn.id, card: turn.card } : undefined;
-  const liveSteps = mode === 'pensando' && turn?.busy ? turn.chips.map((chip) => chip.label).join(' · ') : '';
-  const view = MODES[mode];
-
-  let caption = 'Só um instante…';
-  let sub = '';
-  if (mode === 'ouvindo') {
-    caption = userText ? `“${userText}”` : 'Pode falar…';
-    sub = LISTEN_HINT;
-  } else if (mode === 'pensando') {
-    const intent = userText ? store.intentOf(userText) : undefined;
-    caption = thinkingCaption(intent?.type === 'action' ? intent.action.type : undefined);
-    sub = liveSteps;
-  } else if (mode === 'falando') {
-    [caption, sub] = splitFirstSentence(assistantText || turn?.text || '');
-  }
+  const lastUser = [...state.items].reverse().find((item) => item.kind === 'user');
+  const withCard = [...state.items]
+    .reverse()
+    .find((item): item is AssistantItem => item.kind === 'assistant' && Boolean(item.card));
+  const said = userText || lastUser?.text || '';
+  const speech = failure ?? (mode === 'falando' ? assistantText || turn?.text : turn?.text) ?? '';
+  const status = muted && mode === 'ouvindo' ? { label: 'Microfone desligado', dot: '#6B7770' } : STATUS[mode];
 
   return (
-    <div className="voice">
-      <Header uf={state.uf} />
-      <div className="voice__stage">
-        {pendingLogin ? (
-          <div className="voice__card">
-            <LoginCard turn={pendingLogin.id} card={pendingLogin.card} />
+    <div className="call">
+      <Header uf={state.uf} onHome={onEnd} />
+      <div className="call__stage">
+        <div className="call__user" style={{ opacity: said ? 1 : 0 }}>
+          <div className="call__bubble">
+            <span className="call__who">Você</span>
+            {said}
           </div>
-        ) : (
-          <Mist variant="voice" size={voiceMistSize()} mode={mode === 'conectando' ? 'pensando' : mode} />
-        )}
-        {!failure && (
-          <span className="voice__mode" style={{ background: view.tone.bg, color: view.tone.fg }}>
-            {view.label}
-          </span>
-        )}
-        <p className="voice__caption" aria-live="polite">
-          {failure ?? caption}
-        </p>
-        <p className="voice__sub">{failure ? 'Use o teclado para continuar.' : sub}</p>
+        </div>
+        <div className="call__center">
+          <canvas ref={canvasRef} className="call__particles" width={1040} height={1040} aria-hidden="true" />
+          <p className="call__speech" aria-live="polite">
+            {speech}
+          </p>
+          {failure && (
+            <button type="button" className="btn btn--ghost" onClick={onExit}>
+              Usar o teclado
+            </button>
+          )}
+        </div>
+        <div className={`call__card${withCard?.card ? ' call__card--on' : ''}`}>
+          {withCard?.card && <CardView turn={withCard.id} card={withCard.card} />}
+        </div>
       </div>
-      <div className="voice__controls">
+      <div className="call__controls">
+        <span className="call__status">
+          <span className="call__dot" style={{ background: status.dot }} />
+          {failure ? 'Voz indisponível' : status.label}
+        </span>
         <button
           type="button"
-          className="round-button"
-          style={{ background: 'var(--field)' }}
-          aria-label="Escrever em vez de falar"
-          onClick={onExit}
-        >
-          <KeyboardIcon color="#0F1A15" />
-        </button>
-        <button
-          type="button"
-          className="btn btn--primary voice__main"
-          onClick={primary}
+          className={`call__round${muted ? ' call__round--muted' : ''}`}
+          aria-label={muted ? 'Ligar microfone' : 'Desligar microfone'}
+          aria-pressed={muted}
+          onClick={toggleMute}
           disabled={Boolean(failure) || mode === 'conectando'}
         >
-          {failure ? 'Voz indisponível' : view.action}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z" />
+            <path d="M19 11a7 7 0 0 1-14 0" />
+            <path d="M12 18v3" />
+            {muted && <path d="M4 4l16 16" />}
+          </svg>
         </button>
-        <button
-          type="button"
-          className="round-button"
-          style={{ background: 'var(--danger-soft)' }}
-          aria-label="Encerrar conversa e apagar dados"
-          onClick={onEnd}
-        >
+        <button type="button" className="call__round call__round--end" aria-label="Encerrar conversa e apagar dados" onClick={onEnd}>
           <CloseIcon color="#8F1D13" />
         </button>
       </div>

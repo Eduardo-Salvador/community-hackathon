@@ -17,7 +17,7 @@ export function CardView({ turn, card }: { turn: string; card: Card }) {
     case 'multas':
       return <MultasCard multas={card.multas} resumo={card.resumo} />;
     case 'pixConfirm':
-      return <PixConfirm turn={turn} />;
+      return <PixConfirm />;
     case 'pix':
       return <PixCard multa={card.multa} guia={card.guia} />;
     case 'veiculo':

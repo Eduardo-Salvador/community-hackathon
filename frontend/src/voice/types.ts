@@ -12,6 +12,7 @@ export interface VoiceClient {
   submit(): void;
   cancel(): void;
   interrupt(): void;
+  setMuted(muted: boolean): void;
   stop(): void;
 }
 

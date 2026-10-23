@@ -42,6 +42,11 @@ export class MockVoiceClient implements VoiceClient {
     this.listen();
   }
 
+  setMuted(muted: boolean): void {
+    if (muted) void this.respond();
+    else this.listen();
+  }
+
   stop(): void {
     this.run += 1;
     this.stopTyping();

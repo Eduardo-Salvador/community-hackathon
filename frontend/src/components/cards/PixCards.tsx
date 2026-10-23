@@ -7,18 +7,8 @@ import { TONES } from '../../lib/points';
 import { AlertIcon, CopyIcon, DownloadIcon } from '../icons';
 import { emailUrl, ShareMenu, whatsappUrl } from '../ShareMenu';
 
-export function PixConfirm({ turn }: { turn: string }) {
-  const store = useStore();
-  return (
-    <div className="row">
-      <button type="button" className="btn btn--primary" onClick={() => store.confirmPix(turn)}>
-        Sim, gerar Pix
-      </button>
-      <button type="button" className="btn" onClick={() => store.declinePix(turn)}>
-        Agora não
-      </button>
-    </div>
-  );
+export function PixConfirm() {
+  return <span className="hint">Diga “sim” para gerar o Pix ou “agora não” para deixar para depois.</span>;
 }
 
 const QR_PREFIX = 'data:image/png;base64,';

@@ -1,11 +1,9 @@
 import type { Multa, ResumoPontos } from '../../api/types';
-import { useStore } from '../../conversation/context';
 import { brl, dateBR, monthYearShort } from '../../lib/format';
 import { GRAVIDADE } from '../../lib/points';
 import { PointsSummary } from './PointsSummary';
 
 export function MultasCard({ multas, resumo }: { multas: Multa[]; resumo: ResumoPontos }) {
-  const store = useStore();
   return (
     <>
       <PointsSummary resumo={resumo} />
@@ -35,14 +33,6 @@ export function MultasCard({ multas, resumo }: { multas: Multa[]; resumo: Resumo
                     <strong>{brl(multa.valor)}</strong>
                   )}
                 </div>
-                <button
-                  type="button"
-                  className={`btn btn--sm${index === 0 ? ' btn--primary' : ''}`}
-                  onClick={() => store.requestPix(multa)}
-                  aria-label={`Gerar Pix da multa ${multa.descricao}`}
-                >
-                  Gerar Pix
-                </button>
               </li>
             );
           })}

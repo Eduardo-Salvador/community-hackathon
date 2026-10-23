@@ -39,9 +39,6 @@ export function CnhCard({ cnh }: { cnh: Cnh }) {
           {downloading ? 'Baixando…' : 'Baixar CNH digital'}
         </button>
         <CnhShare onError={setError} />
-        <button type="button" className="btn" onClick={() => store.send('Ver minhas multas')}>
-          Ver minhas multas
-        </button>
       </div>
       {receipt && (
         <span className="hint">O portal não liberou o PDF agora, então baixei um comprovante (imagem da tela da CNH).</span>
