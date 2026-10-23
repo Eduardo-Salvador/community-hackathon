@@ -26,8 +26,8 @@ export function Home({ onStart }: HomeProps) {
         <Mascots paused={reduced} />
         <canvas ref={canvasRef} className="start__particles" width={1040} height={1040} aria-hidden="true" />
         <div className="start__intro">
-          <h1 className="start__title">Olá, Brasil</h1>
-          <p className="start__subtitle">Tudo do governo num lugar só</p>
+          <h1 className="start__title">Fala com a Tupi.</h1>
+          <p className="start__subtitle">Ela resolve com o governo pra você.</p>
         </div>
         <button type="button" className="start__button" onClick={onStart}>
           <span className="start__flow" aria-hidden="true" />
