@@ -26,8 +26,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     }
     if (msg.type === 'sincronizar') {
       // Abre uma aba no portal; o content script manda cada tela quando ela termina de carregar.
+      // Aba em segundo plano: o usuário continua na tela do Tupi Brasil enquanto a extensão lê o portal.
       await chrome.storage.local.set({ fila: TELAS.slice(1), status: 'Lendo sua CNH…' });
-      await chrome.tabs.create({ url: PORTAL + TELAS[0] });
+      const aba = await chrome.tabs.create({ url: PORTAL + TELAS[0], active: false });
+      await chrome.storage.local.set({ abaSync: aba.id });
       return reply({ ok: true });
     }
     if (msg.type === 'pagina') {
@@ -47,7 +49,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
         await status(proxima.includes('infracoes') ? 'Lendo suas multas…' : 'Lendo seus veículos…');
         await chrome.tabs.update(_sender.tab.id, { url: PORTAL + proxima });
       } else if (!proxima) {
-        await status(r.ok ? 'Pronto! Volte para o Tupi Brasil.' : 'Não consegui ler esta tela. Tente Sincronizar de novo.');
+        await status(r.ok ? 'Pronto! Pode perguntar no Tupi Brasil.' : 'Não consegui ler esta tela. Tente Sincronizar de novo.');
+        // Fecha a aba de leitura que a própria extensão abriu.
+        const { abaSync } = await chrome.storage.local.get('abaSync');
+        if (abaSync && abaSync === _sender.tab?.id) await chrome.tabs.remove(abaSync).catch(() => {});
+        await chrome.storage.local.remove('abaSync');
       }
       return reply({ ok: r.ok });
     }
