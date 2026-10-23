@@ -82,7 +82,7 @@ test('consulta multas no portal, calcula pontos, emite etapas e atualiza a sess�
   };
   const { ctx, eventos } = criarContexto(page);
 
-  const resultado = await listarMultas(ctx, '2026-10-23');
+  const resultado = await listarMultas(ctx, {}, '2026-10-23');
 
   assert.equal(urlNavegada, 'https://portalservicos.senatran.test/infracoes');
   assert.equal(resultado.pontos.total, 11);
@@ -133,17 +133,17 @@ test('respeita EAR extraído do portal', async () => {
   const { ctx } = criarContexto(page);
   ctx.config.senatranMultasUrl = undefined;
 
-  const resultado = await listarMultas(ctx, '2026-10-23');
+  const resultado = await listarMultas(ctx, {}, '2026-10-23');
 
   assert.equal(resultado.pontos.total, 14);
   assert.equal(resultado.pontos.limite, 40);
 });
 
-test('sessão ausente ou expirada solicita novo login', async () => {
+test('sem login exige identificadores e sessão de portal expirada solicita novo login', async () => {
   const semLogin = criarContexto({}, { loggedIn: false }).ctx;
   await assert.rejects(
     listarMultas(semLogin),
-    (error: unknown) => error instanceof ToolError && error.code === 'LOGIN_REQUIRED',
+    (error: unknown) => error instanceof ToolError && error.code === 'IDENTIFIERS_REQUIRED',
   );
 
   const semPagina = criarContexto(undefined).ctx;

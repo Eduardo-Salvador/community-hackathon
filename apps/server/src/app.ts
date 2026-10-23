@@ -113,6 +113,7 @@ export async function buildApp(config: Config, deps: AppDependencies = {}) {
           UNKNOWN_TOOL: 404,
           NOT_FOUND: 404,
           INVALID_INPUT: 400,
+          IDENTIFIERS_REQUIRED: 400,
           BAD_SOURCE_DATA: 502,
           SOURCE_UNAVAILABLE: 502,
           NOT_IMPLEMENTED: 501,

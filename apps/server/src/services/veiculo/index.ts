@@ -5,9 +5,10 @@ export const veiculoTools = [
   defineTool({
     name: 'consultar_veiculos',
     service: 'veiculo',
-    description: 'Lista os veículos do usuário com licenciamento, IPVA, restrições e recall. Só leitura.',
-    async handler(ctx) {
-      return consultarVeiculos(ctx);
+    description:
+      'Lista veículos, licenciamento, IPVA, restrições e recall. Sem portal, aceita CPF ou placa com RENAVAM.',
+    async handler(ctx, input) {
+      return consultarVeiculos(ctx, input);
     },
   }),
 ];

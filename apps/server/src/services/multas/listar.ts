@@ -1,7 +1,9 @@
-import type { ToolResults } from '@hackathon/contracts';
+import type { IdentificadoresConsulta, ToolResults } from '@hackathon/contracts';
 import type { z } from 'zod';
 import { sleep, ToolError } from '../../core/errors.ts';
+import { mapearMultasInfosimples } from '../../adapters/infosimples/mapper.ts';
 import { calcularPontos, type MultaParaCalculo } from '../../domain/pontos/index.ts';
+import { consultarApiComRetry, normalizarIdentificadores } from '../fallback.ts';
 import type { ToolContext } from '../../tools/types.ts';
 import { consultarMultasNoPortal } from './portal.ts';
 
@@ -31,12 +33,9 @@ const MOCK_MULTAS: MultaParaCalculo[] = [
 
 export async function listarMultas(
   ctx: ToolContext,
+  entrada: IdentificadoresConsulta = {},
   dataReferencia?: string,
 ): Promise<ListarMultasResult> {
-  if (!ctx.session.browser?.loggedIn) {
-    throw new ToolError('LOGIN_REQUIRED', 'Faça login no gov.br primeiro');
-  }
-
   let multasSemCalculo: MultaParaCalculo[];
   let ear: boolean;
   let referenciaCalculo = dataReferencia;
@@ -49,16 +48,58 @@ export async function listarMultas(
     referenciaCalculo ??= MOCK_DATA_REFERENCIA;
     ctx.emit('carregando_mock', 'ok', { quantidade: multasSemCalculo.length });
   } else {
-    ctx.emit('obtendo_pagina', 'start');
-    const page = await ctx.getPage(ctx.session.id);
-    if (!page) throw new ToolError('LOGIN_REQUIRED', 'Sessão do gov.br expirada; faça login novamente');
-    ctx.emit('obtendo_pagina', 'ok');
+    let portal: Awaited<ReturnType<typeof consultarMultasNoPortal>> | undefined;
+    let erroPortal: unknown;
+    if (ctx.session.browser?.loggedIn) {
+      ctx.emit('obtendo_pagina', 'start');
+      let page: Awaited<ReturnType<ToolContext['getPage']>> = undefined;
+      try {
+        page = await ctx.getPage(ctx.session.id);
+        if (!page) throw new ToolError('LOGIN_REQUIRED', 'Sessão do gov.br expirada');
+        ctx.emit('obtendo_pagina', 'ok');
+      } catch (error) {
+        erroPortal = error;
+        ctx.emit('obtendo_pagina', 'error', { fallback: true });
+      }
 
-    ctx.emit('extraindo_multas', 'start');
-    const portal = await consultarMultasNoPortal(page, ctx.config.senatranMultasUrl);
-    multasSemCalculo = portal.multas;
-    ear = portal.ear;
-    ctx.emit('extraindo_multas', 'ok', { quantidade: multasSemCalculo.length });
+      if (page) {
+        ctx.emit('extraindo_multas', 'start');
+        try {
+          portal = await consultarMultasNoPortal(page, ctx.config.senatranMultasUrl);
+          ctx.emit('extraindo_multas', 'ok', { quantidade: portal.multas.length });
+        } catch (error) {
+          erroPortal = error;
+          ctx.emit('extraindo_multas', 'error', { fallback: true });
+        }
+      }
+    }
+
+    if (portal) {
+      multasSemCalculo = portal.multas;
+      ear = portal.ear;
+    } else {
+      const identificadores = normalizarIdentificadores(entrada);
+      if (!identificadores) {
+        if (erroPortal) throw erroPortal;
+        throw new ToolError(
+          'IDENTIFIERS_REQUIRED',
+          'Para consultar multas sem login, informe o CPF ou a placa junto com o RENAVAM',
+        );
+      }
+      const raw = await consultarApiComRetry(ctx, () =>
+        ctx.adapters.infosimples.consultarMultas(identificadores),
+      );
+      ctx.emit('mapeando_dados_api', 'start');
+      try {
+        multasSemCalculo = mapearMultasInfosimples(raw);
+      } catch (error) {
+        ctx.emit('mapeando_dados_api', 'error');
+        throw error;
+      }
+      // A resposta de fallback não informa EAR; o limite conservador continua sendo calculado pelas infrações.
+      ear = false;
+      ctx.emit('mapeando_dados_api', 'ok', { quantidade: multasSemCalculo.length });
+    }
   }
 
   ctx.emit('calculando_pontos', 'start');

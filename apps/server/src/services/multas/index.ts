@@ -6,9 +6,10 @@ export const multasTools = [
   defineTool({
     name: 'listar_multas',
     service: 'multas',
-    description: 'Lista as multas do usuário com pontos, valores, desconto SNE e resumo de pontuação.',
-    async handler(ctx) {
-      return listarMultas(ctx);
+    description:
+      'Lista multas, pontos e desconto SNE. Sem portal, aceita CPF ou placa com RENAVAM para fallback por API.',
+    async handler(ctx, input) {
+      return listarMultas(ctx, input);
     },
   }),
   defineTool({

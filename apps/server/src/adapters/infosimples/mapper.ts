@@ -91,8 +91,6 @@ export function mapearVeiculoInfosimples(raw: unknown): Veiculo {
   const item = parsed.data;
   const licenciamento = item.licenciamento ?? item.veiculo.licenciamento;
   if (!licenciamento) respostaInvalida('Situação do licenciamento ausente na Infosimples');
-  const crlvFileId = item.crlv_file_id ?? item.veiculo.crlv_file_id;
-
   const resultado = VeiculoSchema.safeParse({
     placa: item.veiculo.placa.replace(/[^a-zA-Z0-9]/g, '').toUpperCase(),
     modelo: textoObrigatorio(item.veiculo.modelo, item.veiculo.marca_modelo),
@@ -100,7 +98,6 @@ export function mapearVeiculoInfosimples(raw: unknown): Veiculo {
     ipvaEmAberto: dinheiro(item.ipva_em_aberto ?? item.veiculo.ipva_em_aberto),
     restricoes: item.restricoes ?? item.veiculo.restricoes ?? lista(item.veiculo.restricao),
     recall: item.recall ?? item.veiculo.recall ?? [],
-    ...(crlvFileId === undefined ? {} : { crlvFileId }),
   });
   if (!resultado.success) respostaInvalida('Veículo da Infosimples não corresponde ao contrato interno');
   return resultado.data;

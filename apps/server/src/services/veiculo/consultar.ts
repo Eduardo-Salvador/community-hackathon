@@ -1,6 +1,8 @@
-import type { ToolResults, Veiculo } from '@hackathon/contracts';
+import type { IdentificadoresConsulta, ToolResults, Veiculo } from '@hackathon/contracts';
 import type { z } from 'zod';
 import { sleep, ToolError } from '../../core/errors.ts';
+import { mapearVeiculoInfosimples } from '../../adapters/infosimples/mapper.ts';
+import { consultarApiComRetry, normalizarIdentificadores } from '../fallback.ts';
 import type { ToolContext } from '../../tools/types.ts';
 import { consultarVeiculosNoPortal } from './portal.ts';
 
@@ -22,11 +24,10 @@ const MOCK_CRLV = Buffer.from(
     '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n',
 );
 
-export async function consultarVeiculos(ctx: ToolContext): Promise<ConsultarVeiculosResult> {
-  if (!ctx.session.browser?.loggedIn) {
-    throw new ToolError('LOGIN_REQUIRED', 'Faça login no gov.br primeiro');
-  }
-
+export async function consultarVeiculos(
+  ctx: ToolContext,
+  entrada: IdentificadoresConsulta = {},
+): Promise<ConsultarVeiculosResult> {
   let veiculos: Veiculo[];
   if (ctx.config.mock) {
     ctx.emit('carregando_mock', 'start');
@@ -45,14 +46,55 @@ export async function consultarVeiculos(ctx: ToolContext): Promise<ConsultarVeic
     }));
     ctx.emit('preparando_crlv', 'ok', { quantidade: veiculos.length });
   } else {
-    ctx.emit('obtendo_pagina', 'start');
-    const page = await ctx.getPage(ctx.session.id);
-    if (!page) throw new ToolError('LOGIN_REQUIRED', 'Sessão do gov.br expirada; faça login novamente');
-    ctx.emit('obtendo_pagina', 'ok');
+    let veiculosPortal: Veiculo[] | undefined;
+    let erroPortal: unknown;
+    if (ctx.session.browser?.loggedIn) {
+      ctx.emit('obtendo_pagina', 'start');
+      let page: Awaited<ReturnType<ToolContext['getPage']>> = undefined;
+      try {
+        page = await ctx.getPage(ctx.session.id);
+        if (!page) throw new ToolError('LOGIN_REQUIRED', 'Sessão do gov.br expirada');
+        ctx.emit('obtendo_pagina', 'ok');
+      } catch (error) {
+        erroPortal = error;
+        ctx.emit('obtendo_pagina', 'error', { fallback: true });
+      }
 
-    ctx.emit('extraindo_veiculos', 'start');
-    veiculos = await consultarVeiculosNoPortal(page, ctx.config.senatranVeiculosUrl);
-    ctx.emit('extraindo_veiculos', 'ok', { quantidade: veiculos.length });
+      if (page) {
+        ctx.emit('extraindo_veiculos', 'start');
+        try {
+          veiculosPortal = await consultarVeiculosNoPortal(page, ctx.config.senatranVeiculosUrl);
+          ctx.emit('extraindo_veiculos', 'ok', { quantidade: veiculosPortal.length });
+        } catch (error) {
+          erroPortal = error;
+          ctx.emit('extraindo_veiculos', 'error', { fallback: true });
+        }
+      }
+    }
+
+    if (veiculosPortal) {
+      veiculos = veiculosPortal;
+    } else {
+      const identificadores = normalizarIdentificadores(entrada);
+      if (!identificadores) {
+        if (erroPortal) throw erroPortal;
+        throw new ToolError(
+          'IDENTIFIERS_REQUIRED',
+          'Para consultar veículos sem login, informe o CPF ou a placa junto com o RENAVAM',
+        );
+      }
+      const raw = await consultarApiComRetry(ctx, () =>
+        ctx.adapters.infosimples.consultarVeiculo(identificadores),
+      );
+      ctx.emit('mapeando_dados_api', 'start');
+      try {
+        veiculos = raw.map(mapearVeiculoInfosimples);
+      } catch (error) {
+        ctx.emit('mapeando_dados_api', 'error');
+        throw error;
+      }
+      ctx.emit('mapeando_dados_api', 'ok', { quantidade: veiculos.length });
+    }
   }
 
   ctx.session.profile.veiculos = veiculos;

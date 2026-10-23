@@ -24,7 +24,7 @@ const errorBody = (code: string) =>
   json({ type: 'object', properties: { code: { type: 'string', enum: [code] } }, required: ['code'] });
 
 const toolErrors = {
-  400: { description: 'INVALID_INPUT', ...json(ref('ToolError')) },
+  400: { description: 'INVALID_INPUT ou IDENTIFIERS_REQUIRED', ...json(ref('ToolError')) },
   401: { description: 'Sessão ausente ou token inválido', ...errorBody('UNAUTHORIZED') },
   404: { description: 'UNKNOWN_TOOL ou NOT_FOUND', ...json(ref('ToolError')) },
   409: { description: 'UF_REQUIRED ou LOGIN_REQUIRED', ...json(ref('ToolError')) },

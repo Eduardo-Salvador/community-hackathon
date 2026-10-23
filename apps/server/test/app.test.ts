@@ -38,6 +38,7 @@ test('Swagger expõe todas as tools e rotas', async () => {
 test('valida a entrada das tools', async () => {
   const headers = await newSession();
   assert.equal((await call(headers, 'selecionar_uf', { uf: 'XX' })).statusCode, 400);
+  assert.equal((await call(headers, 'listar_multas', { cpf: '123' })).statusCode, 400);
   assert.equal((await call(headers, 'nao_existe')).statusCode, 404);
 });
 

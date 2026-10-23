@@ -108,11 +108,11 @@ test('fluxo mock gera CRLV-e protegido pela sessão', async () => {
   );
 });
 
-test('sessão ausente ou expirada solicita novo login', async () => {
+test('sem login exige identificadores e sessão de portal expirada solicita novo login', async () => {
   const semLogin = criarContexto({}, { loggedIn: false }).ctx;
   await assert.rejects(
     consultarVeiculos(semLogin),
-    (error: unknown) => error instanceof ToolError && error.code === 'LOGIN_REQUIRED',
+    (error: unknown) => error instanceof ToolError && error.code === 'IDENTIFIERS_REQUIRED',
   );
 
   const semPagina = criarContexto(undefined).ctx;
