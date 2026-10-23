@@ -54,7 +54,8 @@ export class BrowserManager {
     }
     this.browsers.set(session.id, browser);
     session.browser = { sessionId: browser.id, liveViewUrl: browser.liveViewUrl, loggedIn: false };
-    emit('abrindo_navegador', 'ok');
+    // Mostra na etapa quais proteções a Browserbase aceitou (proxy BR é o que destrava o captcha do gov.br).
+    emit('abrindo_navegador', 'ok', browser.features);
 
     emit('abrindo_portal', 'start');
     await browser.page.goto(this.config.portalLoginUrl, { waitUntil: 'domcontentloaded' });

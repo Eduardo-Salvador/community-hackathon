@@ -5,8 +5,8 @@ import type { BrowserProvider, RemoteBrowser } from './types.ts';
 const API = 'https://api.browserbase.com/v1';
 
 export class BrowserbaseError extends Error {
-  constructor(public step: string, public status?: number) {
-    super(`Browserbase falhou em ${step}${status ? ` (${status})` : ''}`);
+  constructor(public step: string, public status?: number, public detail?: string) {
+    super(`Browserbase falhou em ${step}${status ? ` (${status})` : ''}${detail ? `: ${detail}` : ''}`);
   }
 }
 
@@ -15,7 +15,11 @@ export function createBrowserbaseProvider(config: Config, fetchImpl: typeof fetc
 
   async function api<T>(step: string, path: string, init: RequestInit = {}): Promise<T> {
     const res = await fetchImpl(`${API}${path}`, { ...init, headers });
-    if (!res.ok) throw new BrowserbaseError(step, res.status);
+    if (!res.ok) {
+      // Motivo devolvido pela Browserbase (ex.: plano sem proxy), sem dados do usuário.
+      const detail = (await res.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 300);
+      throw new BrowserbaseError(step, res.status, detail);
+    }
     return (await res.json()) as T;
   }
 
@@ -50,22 +54,28 @@ export function createBrowserbaseProvider(config: Config, fetchImpl: typeof fetc
           }),
         });
       // Do mais protegido ao mais simples: se o plano recusar um recurso, tenta sem ele.
+      // O proxy BR é o que mais importa para o captcha: só desiste dele depois de tentá-lo sozinho.
       const attempts = [
         { proxyCountry: config.browserProxyCountry, verified: config.browserVerified, keepAlive: true },
         { proxyCountry: config.browserProxyCountry, keepAlive: true },
+        { proxyCountry: config.browserProxyCountry },
         { keepAlive: true },
         {},
       ].filter((a, i, all) => all.findIndex((b) => JSON.stringify(b) === JSON.stringify(a)) === i);
       let session: { id: string; connectUrl: string } | undefined;
       let lastError: unknown;
       let keepAlive = false;
+      let features: RemoteBrowser['features'] = { proxy: false, verified: false, keepAlive: false };
       for (const attempt of attempts) {
         try {
           session = await create(attempt);
           keepAlive = Boolean(attempt.keepAlive);
+          features = { proxy: Boolean(attempt.proxyCountry), verified: Boolean(attempt.verified), keepAlive };
           break;
         } catch (err) {
           lastError = err;
+          // Aparece nos logs do Render: diz por que a Browserbase recusou aquela combinação.
+          console.warn('[browserbase] sessão recusada', JSON.stringify(attempt), String(err));
         }
       }
       if (!session) throw lastError;
@@ -81,6 +91,7 @@ export function createBrowserbaseProvider(config: Config, fetchImpl: typeof fetc
         const remote: RemoteBrowser = {
           id,
           liveViewUrl: live.debuggerFullscreenUrl,
+          features,
           page: await pageOf(browser),
           close: async () => {
             if (attached) await browser.close().catch(() => {});
