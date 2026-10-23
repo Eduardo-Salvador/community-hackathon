@@ -29,6 +29,7 @@ export type Config = {
   browserbaseProjectId?: string;
   browserTimeoutSec: number;
   browserProxyCountry?: string;
+  browserVerified: boolean;
   portalUrl: string;
   loginTimeoutMs: number;
   loginPollMs: number;
@@ -88,6 +89,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     // Cobre a conversa inteira; o navegador é fechado antes se a sessão expirar (30 min sem uso).
     browserTimeoutSec: 60 * 60,
     // Proxy residencial da Browserbase (país ISO). BROWSERBASE_PROXY=off desliga.
+    // Modo Verified da Browserbase (planos pagos). BROWSERBASE_VERIFIED=off desliga.
+    browserVerified: env.BROWSERBASE_VERIFIED !== 'off',
     browserProxyCountry: env.BROWSERBASE_PROXY === 'off' ? undefined : env.BROWSERBASE_PROXY || 'BR',
     // Confirmar a URL do Portal de Serviços da Senatran na A6.
     portalUrl: portal,

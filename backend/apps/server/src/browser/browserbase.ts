@@ -27,28 +27,43 @@ export function createBrowserbaseProvider(config: Config, fetchImpl: typeof fetc
 
   return {
     async open(): Promise<RemoteBrowser> {
-      const create = (proxyCountry?: string) =>
+      const create = (opts: { proxyCountry?: string; verified?: boolean }) =>
         api<{ id: string; connectUrl: string }>('create', '/sessions', {
           method: 'POST',
           body: JSON.stringify({
             projectId: config.browserbaseProjectId,
             timeout: config.browserTimeoutSec,
             // IP residencial no Brasil: o hCaptcha do gov.br rejeita acessos de datacenter estrangeiro.
-            ...(proxyCountry ? { proxies: [{ type: 'browserbase', geolocation: { country: proxyCountry } }] } : {}),
+            ...(opts.proxyCountry ? { proxies: [{ type: 'browserbase', geolocation: { country: opts.proxyCountry } }] } : {}),
             // Login gov.br: nada de gravação/log com dados pessoais, e o captcha é do usuário.
             browserSettings: {
               recordSession: false,
               logSession: false,
               solveCaptchas: false,
+              // Navegador "Verified": impressão digital de usuário real, para o gov.br não barrar como robô.
+              ...(opts.verified ? { verified: true } : {}),
               // Tela estreita: o gov.br usa o layout de celular e o live view fica legível no iframe do site.
               viewport: { width: 640, height: 800 },
             },
           }),
         });
-      // Plano sem proxy: abre sem, para o login continuar funcionando.
-      const session = config.browserProxyCountry
-        ? await create(config.browserProxyCountry).catch(() => create())
-        : await create();
+      // Do mais protegido ao mais simples: se o plano recusar um recurso, tenta sem ele.
+      const attempts = [
+        { proxyCountry: config.browserProxyCountry, verified: config.browserVerified },
+        { proxyCountry: config.browserProxyCountry },
+        {},
+      ].filter((a, i, all) => all.findIndex((b) => JSON.stringify(b) === JSON.stringify(a)) === i);
+      let session: { id: string; connectUrl: string } | undefined;
+      let lastError: unknown;
+      for (const attempt of attempts) {
+        try {
+          session = await create(attempt);
+          break;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      if (!session) throw lastError;
       try {
         const browser = await chromium.connectOverCDP(session.connectUrl);
         const context = browser.contexts()[0] ?? (await browser.newContext());

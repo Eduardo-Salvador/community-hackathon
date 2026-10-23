@@ -142,7 +142,10 @@ test('sessão pede proxy residencial no Brasil e, se o plano recusar, tenta sem 
   const { app, call } = await setup(createBrowserbaseProvider(config, recusaProxy));
   await call('iniciar_login');
   assert.deepEqual(bodies[0].proxies, [{ type: 'browserbase', geolocation: { country: 'BR' } }]);
-  assert.equal(bodies[1].proxies, undefined, 'segunda tentativa sem proxy');
+  assert.equal(bodies[0].browserSettings.verified, true, 'primeira tentativa: proxy + Verified');
+  assert.equal(bodies[1].browserSettings.verified, undefined, 'segunda: só proxy');
+  assert.deepEqual(bodies[1].proxies, [{ type: 'browserbase', geolocation: { country: 'BR' } }]);
+  assert.equal(bodies[2].proxies, undefined, 'terceira: sem proxy');
   await app.close();
 
   const off = loadConfig({ MOCK: '0', BROWSERBASE_API_KEY: 'bb', BROWSERBASE_PROJECT_ID: 'p', BROWSERBASE_PROXY: 'off' });
