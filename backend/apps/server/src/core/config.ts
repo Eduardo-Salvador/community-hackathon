@@ -1,7 +1,7 @@
 export type Config = {
   port: number;
   mock: boolean;
-  corsOrigin: string;
+  corsOrigins: string[];
   publicUrl?: string;
   trustProxy: boolean;
   keepAliveUrl?: string;
@@ -46,7 +46,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   return {
     port: Number(env.PORT ?? 3000),
     mock: env.MOCK !== '0',
-    corsOrigin: env.CORS_ORIGIN ?? 'http://localhost:5173',
+    // Aceita várias URLs separadas por vírgula; barra no final é ignorada (o navegador não manda barra).
+    corsOrigins: (env.CORS_ORIGIN || 'http://localhost:5173')
+      .split(',')
+      .map((o) => o.trim().replace(/\/+$/, ''))
+      .filter(Boolean),
     // URL pública do backend para os links de compartilhamento (ex.: https://api.exemplo.com).
     publicUrl: env.PUBLIC_URL || undefined,
     trustProxy: env.TRUST_PROXY !== '0',

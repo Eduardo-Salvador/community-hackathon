@@ -88,7 +88,7 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
     }
   });
 
-  await app.register(cors, { origin: config.corsOrigin });
+  await app.register(cors, { origin: config.corsOrigins });
   await app.register(rateLimit, { global: false });
   await app.register(websocket);
   await app.register(swagger, { mode: 'static', specification: { document: buildOpenApi() as never } });

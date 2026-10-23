@@ -90,3 +90,14 @@ test('fluxo mock do Dev B respeita os contratos de saída', async () => {
   assert.equal(crlv.statusCode, 200);
   assert.equal(crlv.headers['content-type'], 'application/pdf');
 });
+
+test('CORS ignora barra no final e aceita várias origens', async () => {
+  const cors = await buildApp(loadConfig({ MOCK: '1', CORS_ORIGIN: 'https://site.vercel.app/, http://localhost:5173' }));
+  const allow = async (origin: string) =>
+    (await cors.inject({ method: 'OPTIONS', url: '/session', headers: { origin, 'access-control-request-method': 'POST' } }))
+      .headers['access-control-allow-origin'];
+  assert.equal(await allow('https://site.vercel.app'), 'https://site.vercel.app');
+  assert.equal(await allow('http://localhost:5173'), 'http://localhost:5173');
+  assert.equal(await allow('https://outro.com'), undefined);
+  await cors.close();
+});

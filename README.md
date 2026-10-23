@@ -1,6 +1,6 @@
 # Assistente DETRAN — resolva sua vida no trânsito conversando
 
-**🔗 Acesse:** **https://community-hackathon.vercel.app**
+**🔗 Acesse:** **https://community-hackathon-sigma.vercel.app**
 API (Swagger): https://community-hackathon-backend.onrender.com/docs
 
 > O backend roda no plano gratuito do Render: o primeiro acesso pode levar até 1 minuto para "acordar".
