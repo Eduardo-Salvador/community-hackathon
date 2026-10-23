@@ -33,6 +33,12 @@ npm run build
 Variáveis: veja [`frontend/.env.example`](frontend/.env.example). Em produção, `VITE_API_URL` aponta para o backend
 e o `CORS_ORIGIN` do backend aponta para o site.
 
+### Deploy do frontend (Vercel)
+
+1. Importe o repositório na Vercel com **Root Directory** = `frontend` (o [`vercel.json`](frontend/vercel.json) já define build e cabeçalhos).
+2. Defina `VITE_API_URL` = URL do backend no Render, sem barra no final.
+3. No Render, defina `CORS_ORIGIN` = URL de produção da Vercel. Previews da Vercel têm outra URL e são bloqueados pelo CORS.
+
 ## Pendências de configuração
 
 - **`VOICE_MODEL`** (voz do site): o padrão `gpt-realtime` ainda não foi validado com chave real. Confirme no painel da OpenAI o nome do modelo Realtime da conta e ajuste a variável. Sem isso, `POST /voice/token` pode responder `502 VOICE_UPSTREAM_ERROR`.
@@ -41,6 +47,5 @@ e o `CORS_ORIGIN` do backend aponta para o site.
 
 ## Deploy (Render)
 
-[`render.yaml`](render.yaml) define os serviços (backend e site estático): **New → Blueprint** → este repositório.
-Depois do primeiro deploy, preencha `VITE_API_URL` no site e `CORS_ORIGIN`/`PUBLIC_URL` no backend com as URLs geradas.
+[`render.yaml`](render.yaml) define o serviço: **New → Blueprint** → este repositório.
 O Render pede os segredos (`sync: false`) na criação e só publica quando o CI passa.

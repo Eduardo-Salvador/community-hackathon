@@ -63,29 +63,3 @@ services:
       # Guia oficial é gerada no portal (login gov.br). 1 = guia de demonstração marcada.
       - key: GUIA_DEMO
         value: "0"
-
-  - type: web
-    name: community-hackathon-frontend
-    runtime: static
-    branch: main
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    staticPublishPath: dist
-    autoDeployTrigger: checksPass
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: Referrer-Policy
-        value: no-referrer
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-    envVars:
-      - key: NODE_VERSION
-        value: "22"
-      # URL do backend (ex.: https://community-hackathon-backend.onrender.com), sem barra no final.
-      # O CORS_ORIGIN do backend precisa ser a URL deste site.
-      - key: VITE_API_URL
-        sync: false
