@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { ToolInputs, type ToolName } from '@hackathon/contracts';
+import { type Decision, ToolInputs, type ToolName } from '@hackathon/contracts';
 import { ToolError } from '../core/errors.ts';
+import { checkPrerequisites } from '../orchestrator/rules.ts';
 import { UntrustedDataError } from '../core/untrusted.ts';
 import type { EventBus } from '../core/events.ts';
 import { cnhTools } from '../services/cnh/index.ts';
@@ -27,7 +28,7 @@ export function listToolSchemas() {
 
 export type ToolResult =
   | { ok: true; result: unknown }
-  | { ok: false; code: string; message: string };
+  | { ok: false; code: string; message: string; next?: Decision };
 
 export async function runTool(
   name: string,
@@ -45,6 +46,12 @@ export async function runTool(
     events.emitStep(ctx.session.id, tool.service, step, status, data);
 
   emit(tool.name, 'start');
+  const blocked = checkPrerequisites(tool.name, ctx.session);
+  if (blocked) {
+    const code = blocked.action === 'ask_uf' ? 'UF_REQUIRED' : 'LOGIN_REQUIRED';
+    emit(tool.name, 'error', { code, next: blocked });
+    return { ok: false, code, message: blocked.reason, next: blocked };
+  }
   try {
     const result = await tool.handler({ ...ctx, emit }, input.data as never);
     emit(tool.name, 'ok', result);

@@ -1,4 +1,4 @@
-import { sleep, ToolError } from '../../core/errors.ts';
+import { sleep } from '../../core/errors.ts';
 import { defineTool } from '../../tools/types.ts';
 
 export const loginTools = [
@@ -6,12 +6,11 @@ export const loginTools = [
     name: 'iniciar_login',
     service: 'login',
     description:
-      'Abre a tela de login do gov.br para o usuário entrar. Necessário antes de consultar CNH, multas ou veículos.',
-    async handler({ session, config, emit }) {
-      if (!session.uf) throw new ToolError('UF_REQUIRED', 'Selecione o estado antes de fazer login');
-      if (!config.mock) throw new ToolError('NOT_IMPLEMENTED', 'Login real (Browserbase) ainda não implementado');
+      'Abre a tela de login do gov.br para o usuário entrar. Necessário antes de consultar CNH, multas ou veículos. ' +
+      'O login termina quando o evento login:aguardando_usuario chega como ok.',
+    async handler({ session, config, browsers, emit }) {
+      if (!config.mock) return browsers.startLogin(session, emit);
 
-      // TODO(A5): criar sessão Browserbase, devolver liveViewUrl e detectar o fim do login.
       const browser = { sessionId: 'mock-browser', liveViewUrl: 'about:blank', loggedIn: false };
       session.browser = browser;
       emit('aguardando_usuario', 'start', { liveViewUrl: browser.liveViewUrl });

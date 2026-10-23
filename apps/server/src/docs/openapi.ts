@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import {
   CnhSchema,
+  DecisionSchema,
   GuiaSchema,
+  SessionStateSchema,
   MultaSchema,
   ResumoPontosSchema,
   StepEventSchema,
@@ -29,6 +31,8 @@ const toolErrors = {
   404: { description: 'UNKNOWN_TOOL ou NOT_FOUND', ...json(ref('ToolError')) },
   409: { description: 'UF_REQUIRED, LOGIN_REQUIRED ou BAD_SOURCE_DATA', ...json(ref('ToolError')) },
   501: { description: 'NOT_IMPLEMENTED (serviço real ainda não feito)', ...json(ref('ToolError')) },
+  502: { description: 'EXTRACTION_FAILED (falha ao ler a página do portal)', ...json(ref('ToolError')) },
+  503: { description: 'BROWSER_UNAVAILABLE (navegador remoto não abriu)', ...json(ref('ToolError')) },
 };
 
 const WS_DOCS = `
@@ -37,6 +41,17 @@ const WS_DOCS = `
 2. Em até 5 s enviar \`{"type":"auth","sessionId":"<id>","token":"<token>"}\`
 3. Servidor responde \`{"type":"ready"}\` e passa a enviar um **StepEvent** por etapa.
 Token errado fecha com código **4401**; JSON inválido com **4400**.
+
+### Login gov.br
+1. \`POST /tools/iniciar_login\` → \`{ liveViewUrl, loggedIn: false }\`
+2. Mostrar \`liveViewUrl\` num iframe; o usuário faz o login (senha, 2FA, captcha) ali
+3. Quando chegar o StepEvent \`login:aguardando_usuario\` com \`ok\`, está logado
+   (\`error\` com \`LOGIN_TIMEOUT\` após 5 min sem login)
+
+### MCP (dots e outros clientes MCP)
+- Endpoint \`/mcp\` (Streamable HTTP), com \`Authorization: Bearer <MCP_API_KEY>\`. Desligado sem a chave.
+- Cada sessão MCP tem a própria sessão do backend. Mesmas tools + \`estado_sessao\`.
+- \`iniciar_login\` devolve o link do live view para o usuário; arquivos (PDF/print) vêm embutidos no resultado.
 
 ### Voz
 1. \`POST /voice/token\` → token temporário da OpenAI Realtime (já com instruções e tools)
@@ -94,9 +109,16 @@ export function buildOpenApi() {
         Guia: schema(GuiaSchema),
         Veiculo: schema(VeiculoSchema),
         StepEvent: schema(StepEventSchema),
+        Decision: schema(DecisionSchema),
+        SessionState: schema(SessionStateSchema),
         ToolError: {
           type: 'object',
-          properties: { ok: { const: false }, code: schema(ToolErrorCodeSchema), message: { type: 'string' } },
+          properties: {
+            ok: { const: false },
+            code: schema(ToolErrorCodeSchema),
+            message: { type: 'string' },
+            next: { ...ref('Decision'), description: 'Presente em UF_REQUIRED/LOGIN_REQUIRED: qual tool chamar antes' },
+          },
           required: ['ok', 'code', 'message'],
         },
       },
@@ -114,6 +136,15 @@ export function buildOpenApi() {
             200: { description: 'Sessão criada', ...json({ type: 'object', properties: { id: { type: 'string', format: 'uuid' }, token: { type: 'string' } }, required: ['id', 'token'] }) },
             429: { description: 'Limite por IP' },
           },
+        },
+      },
+      '/session/state': {
+        get: {
+          tags: ['Sessão'],
+          summary: 'Estado da sessão e próximo passo sugerido',
+          description: '`next` vem da OpenAI Decisions API quando a confiança é alta (`source: "decisions"`); senão das regras fixas (`source: "rules"`).',
+          security: [{ sessionId: [], bearer: [] }],
+          responses: { 200: { description: 'Estado', ...json(ref('SessionState')) }, 401: toolErrors[401] },
         },
       },
       '/tools': {

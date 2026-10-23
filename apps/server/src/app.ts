@@ -5,8 +5,15 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import websocket from '@fastify/websocket';
 import { z } from 'zod';
+import { createExtractor } from './ai/extract.ts';
+import { createBrowserbaseProvider } from './browser/browserbase.ts';
+import { BrowserManager } from './browser/manager.ts';
+import type { BrowserProvider } from './browser/types.ts';
 import type { Config } from './core/config.ts';
 import { buildOpenApi } from './docs/openapi.ts';
+import { registerMcp } from './mcp/server.ts';
+import { Orchestrator } from './orchestrator/index.ts';
+import { createDecisionsClient } from './orchestrator/decisions.ts';
 import { EventBus } from './core/events.ts';
 import { FileStore } from './core/files.ts';
 import { type Session, SessionStore } from './core/session-store.ts';
@@ -21,17 +28,36 @@ declare module 'fastify' {
 
 const WsAuthSchema = z.object({ type: z.literal('auth'), sessionId: z.string(), token: z.string() });
 
-export async function buildApp(config: Config, deps: { fetch: typeof fetch } = { fetch: globalThis.fetch }) {
+type Deps = { fetch: typeof fetch; browserProvider?: BrowserProvider };
+
+export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
+  const fetchImpl = overrides.fetch ?? globalThis.fetch;
+  const deps: Deps = {
+    fetch: fetchImpl,
+    browserProvider:
+      overrides.browserProvider ??
+      (config.browserbaseApiKey ? createBrowserbaseProvider(config, fetchImpl) : undefined),
+  };
   const app = Fastify({
     logger: config.mock ? false : { redact: ['req.headers.authorization', 'req.headers["x-session-id"]'] },
   });
   const events = new EventBus();
   const files = new FileStore(config.fileTtlMs);
+  const browsers = new BrowserManager(config, deps.browserProvider);
+  const extractor = createExtractor(config, deps.fetch);
   const sessions = new SessionStore(config.sessionTtlMs, (id) => {
     events.drop(id);
     files.dropOwner(id);
+    void browsers.close(id);
   });
-  app.addHook('onClose', async () => sessions.close());
+  app.addHook('onClose', async () => {
+    sessions.close();
+    await browsers.closeAll();
+  });
+  const orchestrator = new Orchestrator(createDecisionsClient(config, deps.fetch));
+  // Mesma execução para REST, voz e MCP.
+  const runToolFor = (session: Session, name: string, input: unknown) =>
+    runTool(name, input, { session, config, files, browsers, extractor }, events);
 
   // Corpo vazio com content-type JSON vira {} em vez de erro 400.
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
@@ -65,6 +91,8 @@ export async function buildApp(config: Config, deps: { fetch: typeof fetch } = {
     return { id: session.id, token };
   });
 
+  app.get('/session/state', { preHandler: requireSession }, async (req) => orchestrator.state(req.auth!));
+
   app.get('/tools', { preHandler: requireSession }, async () => listToolSchemas());
 
   app.post(
@@ -91,9 +119,17 @@ export async function buildApp(config: Config, deps: { fetch: typeof fetch } = {
     '/tools/:name',
     { preHandler: requireSession, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
     async (req, reply) => {
-      const result = await runTool(req.params.name, req.body, { session: req.auth!, config, files }, events);
+      const result = await runToolFor(req.auth!, req.params.name, req.body);
       if (!result.ok) {
-        const status = { UNKNOWN_TOOL: 404, NOT_FOUND: 404, INVALID_INPUT: 400, NOT_IMPLEMENTED: 501 }[result.code] ?? 409;
+        const status =
+          {
+            UNKNOWN_TOOL: 404,
+            NOT_FOUND: 404,
+            INVALID_INPUT: 400,
+            NOT_IMPLEMENTED: 501,
+            EXTRACTION_FAILED: 502,
+            BROWSER_UNAVAILABLE: 503,
+          }[result.code] ?? 409;
         return reply.code(status).send(result);
       }
       return result;
@@ -135,6 +171,8 @@ export async function buildApp(config: Config, deps: { fetch: typeof fetch } = {
       unsubscribe?.();
     });
   });
+
+  registerMcp(app, { config, sessions, files, orchestrator, run: runToolFor });
 
   return app;
 }

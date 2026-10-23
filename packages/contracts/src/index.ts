@@ -104,11 +104,28 @@ export const ToolResults = {
   selecionar_uf: z.object({ uf: UFSchema }),
   iniciar_login: z.object({ liveViewUrl: z.string(), loggedIn: z.boolean() }),
   consultar_cnh: CnhSchema,
-  baixar_cnh: z.object({ fileId: z.string() }),
+  // tipo "comprovante": o portal não ofereceu o PDF e devolvemos um print (PNG) da tela da CNH.
+  baixar_cnh: z.object({ fileId: z.string(), tipo: z.enum(['pdf', 'comprovante']) }),
   listar_multas: z.object({ multas: z.array(MultaSchema), pontos: ResumoPontosSchema }),
   gerar_guia_multa: GuiaSchema,
   consultar_veiculos: z.object({ veiculos: z.array(VeiculoSchema) }),
 } satisfies Record<ToolName, z.ZodType>;
+
+// Próximo passo sugerido ao agente (pela OpenAI Decisions API ou pelas regras fixas).
+export const DecisionSchema = z.object({
+  action: z.enum(['ask_uf', 'require_login', 'run_tool', 'done']),
+  tool: ToolNameSchema.optional(),
+  reason: z.string().max(200),
+});
+export type Decision = z.infer<typeof DecisionSchema>;
+
+export const SessionStateSchema = z.object({
+  uf: UFSchema.optional(),
+  loggedIn: z.boolean(),
+  has: z.object({ cnh: z.boolean(), multas: z.boolean(), veiculos: z.boolean() }),
+  next: DecisionSchema.extend({ source: z.enum(['decisions', 'rules']) }),
+});
+export type SessionState = z.infer<typeof SessionStateSchema>;
 
 export const ToolErrorCodeSchema = z.enum([
   'INVALID_INPUT',
@@ -118,5 +135,7 @@ export const ToolErrorCodeSchema = z.enum([
   'LOGIN_REQUIRED',
   'BAD_SOURCE_DATA',
   'NOT_IMPLEMENTED',
+  'BROWSER_UNAVAILABLE',
+  'EXTRACTION_FAILED',
 ]);
 export type ToolErrorCode = z.infer<typeof ToolErrorCodeSchema>;
