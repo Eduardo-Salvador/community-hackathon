@@ -57,3 +57,21 @@ test('fluxo mock: UF → login → CNH → PDF', async () => {
   const other = await newSession();
   assert.equal((await app.inject({ method: 'GET', url: `/files/${fileId}`, headers: other })).statusCode, 404);
 });
+
+test('fluxo mock do Dev B respeita os contratos de saída', async () => {
+  const headers = await newSession();
+  await call(headers, 'selecionar_uf', { uf: 'SP' });
+  await call(headers, 'iniciar_login');
+
+  const multas = (await call(headers, 'listar_multas')).json();
+  assert.equal(multas.ok, true);
+  assert.equal(multas.result.pontos.total, 11);
+
+  const guia = (await call(headers, 'gerar_guia_multa', { multaId: multas.result.multas[0].id })).json();
+  assert.equal(guia.ok, true);
+  assert.equal(guia.result.multaId, 'm1');
+
+  const veiculos = (await call(headers, 'consultar_veiculos')).json();
+  assert.equal(veiculos.ok, true);
+  assert.equal(veiculos.result.veiculos[0].placa, 'ABC1D23');
+});

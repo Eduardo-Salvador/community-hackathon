@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ToolInputs, type ToolName } from '@hackathon/contracts';
+import { ToolInputs, ToolResults, type ToolName } from '@hackathon/contracts';
 import { ToolError } from '../core/errors.ts';
 import { UntrustedDataError } from '../core/untrusted.ts';
 import type { EventBus } from '../core/events.ts';
@@ -46,7 +46,12 @@ export async function runTool(
 
   emit(tool.name, 'start');
   try {
-    const result = await tool.handler({ ...ctx, emit }, input.data as never);
+    const rawResult = await tool.handler({ ...ctx, emit }, input.data as never);
+    const output = ToolResults[tool.name].safeParse(rawResult);
+    if (!output.success) {
+      throw new UntrustedDataError(`tool:${tool.name}`, output.error.issues);
+    }
+    const result = output.data;
     emit(tool.name, 'ok', result);
     return { ok: true, result };
   } catch (err) {

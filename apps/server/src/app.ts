@@ -11,6 +11,7 @@ import { EventBus } from './core/events.ts';
 import { FileStore } from './core/files.ts';
 import { type Session, SessionStore } from './core/session-store.ts';
 import { listToolSchemas, runTool } from './tools/registry.ts';
+import type { GetPage } from './tools/types.ts';
 import { createVoiceToken, VoiceUpstreamError } from './voice/token.ts';
 
 declare module 'fastify' {
@@ -21,7 +22,14 @@ declare module 'fastify' {
 
 const WsAuthSchema = z.object({ type: z.literal('auth'), sessionId: z.string(), token: z.string() });
 
-export async function buildApp(config: Config, deps: { fetch: typeof fetch } = { fetch: globalThis.fetch }) {
+export type AppDependencies = {
+  fetch?: typeof fetch;
+  getPage?: GetPage;
+};
+
+export async function buildApp(config: Config, deps: AppDependencies = {}) {
+  const fetchImpl = deps.fetch ?? globalThis.fetch;
+  const getPage: GetPage = deps.getPage ?? (async () => undefined);
   const app = Fastify({
     logger: config.mock ? false : { redact: ['req.headers.authorization', 'req.headers["x-session-id"]'] },
   });
@@ -78,7 +86,7 @@ export async function buildApp(config: Config, deps: { fetch: typeof fetch } = {
       }
       session.voiceTokensIssued++;
       try {
-        return await createVoiceToken(config, deps.fetch);
+        return await createVoiceToken(config, fetchImpl);
       } catch (err) {
         if (!(err instanceof VoiceUpstreamError)) throw err;
         req.log.warn({ status: err.status }, 'falha ao gerar token de voz');
@@ -91,7 +99,12 @@ export async function buildApp(config: Config, deps: { fetch: typeof fetch } = {
     '/tools/:name',
     { preHandler: requireSession, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
     async (req, reply) => {
-      const result = await runTool(req.params.name, req.body, { session: req.auth!, config, files }, events);
+      const result = await runTool(
+        req.params.name,
+        req.body,
+        { session: req.auth!, config, files, getPage },
+        events,
+      );
       if (!result.ok) {
         const status = { UNKNOWN_TOOL: 404, NOT_FOUND: 404, INVALID_INPUT: 400, NOT_IMPLEMENTED: 501 }[result.code] ?? 409;
         return reply.code(status).send(result);
