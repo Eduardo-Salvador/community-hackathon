@@ -55,6 +55,8 @@ export const GuiaSchema = z.object({
   // Texto pronto para WhatsApp/e-mail. Gerar com guiaShareText() de core/share.ts.
   textoCompartilhar: z.string().max(2000).optional(),
   pdfFileId: z.string().optional(),
+  // true = guia de demonstração (mock ou GUIA_DEMO): o front deve mostrar "não pague".
+  demonstracao: z.boolean().optional(),
 });
 export type Guia = z.infer<typeof GuiaSchema>;
 

@@ -18,11 +18,7 @@ export type Config = {
   senatranVeiculosUrl?: string;
   senatranCnhUrl: string;
   portalLoginUrl: string;
-  zapayGuiaUrl?: string;
-  zapayAccessToken?: string;
-  zapayCustomerId?: string;
-  zapayAuthScheme: string;
-  zapayApiVersion: string;
+  guiaDemo: boolean;
   extractionModel: string;
   extractionTimeoutMs: number;
   decisionsEnabled: boolean;
@@ -73,11 +69,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     senatranCnhUrl: env.SENATRAN_CNH_URL || `${portal}#/habilitacao/consultar`,
     // Tela protegida: abrir ela força o redirecionamento para o login do gov.br (a home é pública).
     portalLoginUrl: env.PORTAL_LOGIN_URL || `${portal}#/infracoes/consultar`,
-    zapayGuiaUrl: env.ZAPAY_GUIA_URL || undefined,
-    zapayAccessToken: env.ZAPAY_ACCESS_TOKEN || undefined,
-    zapayCustomerId: env.ZAPAY_CUSTOMER_ID || undefined,
-    zapayAuthScheme: env.ZAPAY_AUTH_SCHEME ?? 'JWT',
-    zapayApiVersion: env.ZAPAY_API_VERSION ?? 'v2.0',
+    // Guia de demonstração (marcada, não pagável) enquanto a tela de pagamento do portal não é validada.
+    guiaDemo: env.GUIA_DEMO === '1',
     extractionModel: env.EXTRACTION_MODEL ?? 'gpt-6-astra',
     extractionTimeoutMs: 30_000,
     decisionsEnabled: env.DECISIONS !== '0',

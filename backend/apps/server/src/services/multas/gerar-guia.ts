@@ -2,6 +2,7 @@ import { GuiaSchema, type Guia, type Multa } from '@hackathon/contracts';
 import { sleep, ToolError } from '../../core/errors.ts';
 import { guiaShareText, pixQrCode } from '../../core/share.ts';
 import type { ToolContext } from '../../tools/types.ts';
+import { gerarGuiaNoPortal } from './guia-portal.ts';
 import { criarPdfGuia } from './pdf.ts';
 
 const MOCK_PIX = '00020101021226800014br.gov.bcb.pix0136mock-guia-multa-devb5204000053039865802BR5908DETRANSP6009SAOPAULO62070503***6304ABCD';
@@ -52,35 +53,42 @@ export async function gerarGuiaMulta(
     prazo: multa.prazoDesconto,
   });
 
-  ctx.emit('gerando_pagamento', 'start');
-  const resultado = ctx.config.mock
-    ? await (async () => {
-        await sleep(200);
-        return {
-          guia: { multaId, pixCopiaECola: MOCK_PIX, linhaDigitavel: MOCK_LINHA },
-          pdfUrl: undefined,
-        };
-      })()
-    : await ctx.adapters.zapay.gerarGuia({
-        multaId,
-        descricao: multa.descricao,
-        ...pagamento,
-      });
+  // Guia oficial vem do portal (login gov.br). Mock e GUIA_DEMO devolvem uma guia marcada como demonstração.
+  const demonstracao = ctx.config.mock || ctx.config.guiaDemo;
+  ctx.emit('gerando_pagamento', 'start', { fonte: demonstracao ? 'demonstracao' : 'portal' });
+  let codigos: { pixCopiaECola?: string; linhaDigitavel?: string; pdf?: Buffer };
+  if (demonstracao) {
+    await sleep(200);
+    codigos = { pixCopiaECola: MOCK_PIX, linhaDigitavel: MOCK_LINHA };
+  } else {
+    const page = ctx.browsers.getPage(ctx.session.id);
+    if (!page) {
+      ctx.emit('gerando_pagamento', 'error', { code: 'LOGIN_REQUIRED' });
+      throw new ToolError('LOGIN_REQUIRED', 'A guia oficial é gerada no portal: faça login no gov.br');
+    }
+    if (!ctx.config.senatranMultasUrl) throw new ToolError('NOT_IMPLEMENTED', 'URL de multas do portal não configurada');
+    codigos = await gerarGuiaNoPortal(page, ctx.extractor, multa, ctx.config.senatranMultasUrl);
+  }
+  const resultado = {
+    guia: { multaId, pixCopiaECola: codigos.pixCopiaECola, linhaDigitavel: codigos.linhaDigitavel },
+  };
   ctx.emit('gerando_pagamento', 'ok', {
     pix: Boolean(resultado.guia.pixCopiaECola),
     boleto: Boolean(resultado.guia.linhaDigitavel),
+    demonstracao,
   });
 
   ctx.emit('preparando_pdf', 'start');
-  const pdf = resultado.pdfUrl
-    ? await ctx.adapters.zapay.baixarPdf(resultado.pdfUrl)
-    : criarPdfGuia({
-        multaId,
-        descricao: multa.descricao,
-        ...pagamento,
-        pixCopiaECola: resultado.guia.pixCopiaECola,
-        linhaDigitavel: resultado.guia.linhaDigitavel,
-      });
+  const pdf =
+    codigos.pdf ??
+    criarPdfGuia({
+      multaId,
+      descricao: multa.descricao,
+      ...pagamento,
+      pixCopiaECola: resultado.guia.pixCopiaECola,
+      linhaDigitavel: resultado.guia.linhaDigitavel,
+      demonstracao,
+    });
   const pdfFileId = ctx.files.put(ctx.session.id, {
     contentType: 'application/pdf',
     filename: 'guia-multa.pdf',
@@ -94,13 +102,16 @@ export async function gerarGuiaMulta(
     ...resultado.guia,
     pdfFileId,
     pixQrCode: pixCopiaECola ? await pixQrCode(pixCopiaECola) : undefined,
-    textoCompartilhar: guiaShareText({
-      descricao: multa.descricao,
-      valor: pagamento.valorCentavos / 100,
-      vencimento: multa.prazoDesconto,
-      linhaDigitavel: resultado.guia.linhaDigitavel,
-      pixCopiaECola,
-    }),
+    textoCompartilhar:
+      (demonstracao ? 'DEMONSTRAÇÃO - NÃO PAGUE ESTE CÓDIGO\n' : '') +
+      guiaShareText({
+        descricao: multa.descricao,
+        valor: pagamento.valorCentavos / 100,
+        vencimento: multa.prazoDesconto,
+        linhaDigitavel: resultado.guia.linhaDigitavel,
+        pixCopiaECola,
+      }),
+    demonstracao,
   });
   ctx.session.profile.guias ??= {};
   ctx.session.profile.guias[multaId] = guia;

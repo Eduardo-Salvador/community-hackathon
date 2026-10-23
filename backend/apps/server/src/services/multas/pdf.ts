@@ -5,6 +5,7 @@ type DadosGuiaPdf = {
   descontoSneAplicado: boolean;
   pixCopiaECola?: string;
   linhaDigitavel?: string;
+  demonstracao?: boolean;
 };
 
 function textoPdf(valor: string): string {
@@ -23,6 +24,7 @@ function quebrar(valor: string, tamanho = 72): string[] {
 export function criarPdfGuia(dados: DadosGuiaPdf): Buffer {
   const valor = (dados.valorCentavos / 100).toFixed(2).replace('.', ',');
   const linhas = [
+    ...(dados.demonstracao ? ['*** DEMONSTRACAO - NAO PAGUE ESTE CODIGO ***'] : []),
     'Guia de pagamento de multa',
     `Multa: ${dados.multaId}`,
     `Descricao: ${dados.descricao}`,
