@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { width: 280px; margin: 0; padding: 16px; font: 14px system-ui, sans-serif; color: #0f1a15; }
+    h1 { font-size: 16px; margin: 0 0 4px; }
+    p { margin: 0 0 12px; color: #4a5a52; line-height: 1.4; }
+    input { width: 100%; box-sizing: border-box; padding: 10px; font-size: 18px; letter-spacing: 4px;
+      text-transform: uppercase; text-align: center; border: 1px solid #cfd8d3; border-radius: 10px; }
+    button { width: 100%; margin-top: 8px; padding: 10px; border: 0; border-radius: 10px; font-weight: 600;
+      background: #1f6b4f; color: #fff; cursor: pointer; }
+    button.sec { background: #eef3f0; color: #1f6b4f; }
+    #status { margin-top: 12px; font-size: 13px; color: #1f6b4f; min-height: 18px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Tupi Brasil</h1>
+  <div id="parear">
+    <p>Digite o código que o assistente falou.</p>
+    <input id="codigo" maxlength="6" autocomplete="off" placeholder="ABC123" />
+    <button id="conectar">Conectar</button>
+  </div>
+  <div id="conectado" class="hidden">
+    <p>1. Entre no gov.br no Chrome (abra o portal e faça login).<br />2. Clique em Sincronizar.</p>
+    <button id="portal" class="sec">Abrir o portal para entrar</button>
+    <button id="sincronizar">Sincronizar</button>
+    <button id="sair" class="sec">Desconectar</button>
+  </div>
+  <div id="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CnhSchema } from '@hackathon/contracts';
+import type { Extractor } from '../../ai/extract.ts';
 import { findDownloadLink, fetchFile, pageText, screenshot } from '../../browser/portal.ts';
 import { sleep, ToolError } from '../../core/errors.ts';
 import { fromPortal } from '../../core/untrusted.ts';
@@ -47,10 +48,15 @@ async function consultarReal(ctx: ToolContext) {
   ctx.emit('abrindo_secao_cnh', 'ok');
 
   ctx.emit('extraindo_dados', 'start');
-  const extracted = await ctx.extractor.extract('cnh', CnhExtraction, await pageText(page));
-  if (!extracted.encontrado) throw new ToolError('NOT_FOUND', 'Não encontrei os dados da CNH no portal');
+  const cnh = await cnhDoTexto(ctx.extractor, await pageText(page));
   ctx.emit('extraindo_dados', 'ok');
+  return cnh;
+}
 
+// Texto da tela "Consultar Minha Habilitação" → CNH validada. Usado pelo navegador remoto e pela extensão.
+export async function cnhDoTexto(extractor: Extractor, texto: string) {
+  const extracted = await extractor.extract('cnh', CnhExtraction, texto);
+  if (!extracted.encontrado) throw new ToolError('NOT_FOUND', 'Não encontrei os dados da CNH no portal');
   return fromPortal('portal-senatran', CnhSchema, {
     nome: extracted.nome.trim(),
     registro: extracted.registro.replace(/\D/g, ''),
@@ -104,7 +110,11 @@ export const cnhTools = [
     description: 'Consulta validade, categoria e situação da CNH do usuário logado.',
     async handler(ctx) {
       let cnh;
-      if (ctx.config.mock) {
+      if (ctx.session.extensao?.cnh) {
+        // Dados reais enviados pela extensão do Chrome do usuário (tem prioridade, inclusive em mock).
+        cnh = ctx.session.extensao.cnh;
+        ctx.emit('dados_da_extensao', 'ok');
+      } else if (ctx.config.mock) {
         ctx.emit('extraindo_dados', 'start');
         await sleep(200);
         cnh = fromPortal('portal-senatran', CnhSchema, ctx.config.mockPerfil.cnh ?? MOCK_CNH);

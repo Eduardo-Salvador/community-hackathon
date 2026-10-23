@@ -14,6 +14,13 @@ export type Session = {
     veiculos?: Veiculo[];
   };
   voiceTokensIssued: number;
+  // Dados reais vindos da extensão do Chrome do usuário (logado no gov.br no próprio navegador).
+  extensao?: {
+    cnh?: Cnh;
+    multas?: { ear: boolean; multas: Array<Omit<Multa, 'pontos' | 'expiraContagemEm'>> };
+    veiculos?: Array<Omit<Veiculo, 'crlvFileId'>>;
+    sincronizadoEm?: string;
+  };
 };
 
 const hash = (token: string) => createHash('sha256').update(token).digest();

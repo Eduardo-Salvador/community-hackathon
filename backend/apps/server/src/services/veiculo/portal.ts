@@ -12,6 +12,12 @@ const ResultadoPortalSchema = z.object({ veiculos: z.array(VeiculoPortalSchema) 
 
 type VeiculoPortal = Omit<Veiculo, 'crlvFileId'>;
 
+// Texto da tela "Meus Veículos" → veículos validados. Usado pelo navegador remoto e pela extensão.
+export async function veiculosDoTexto(extractor: Extractor, texto: string): Promise<VeiculoPortal[]> {
+  const extraido = await extractor.extract('veiculos_portal', ResultadoPortalSchema, texto);
+  return fromPortal('portal-senatran:veiculos', ResultadoPortalSchema, extraido).veiculos;
+}
+
 export async function consultarVeiculosNoPortal(
   page: Page,
   extractor: Extractor,

@@ -30,7 +30,12 @@ export async function consultarVeiculos(
   entrada: IdentificadoresConsulta = {},
 ): Promise<ConsultarVeiculosResult> {
   let veiculos: Veiculo[];
-  if (ctx.config.mock) {
+  const daExtensao = ctx.session.extensao?.veiculos;
+  if (daExtensao) {
+    // Dados reais enviados pela extensão do Chrome do usuário (tem prioridade, inclusive em mock).
+    veiculos = daExtensao.map((veiculo) => ({ ...veiculo }));
+    ctx.emit('dados_da_extensao', 'ok', { quantidade: veiculos.length });
+  } else if (ctx.config.mock) {
     ctx.emit('carregando_mock', 'start');
     await sleep(200);
     veiculos = (ctx.config.mockPerfil.veiculos ?? MOCK_VEICULOS).map((veiculo) => ({ ...veiculo }));

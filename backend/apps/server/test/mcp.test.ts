@@ -38,6 +38,7 @@ test('lista as mesmas tools do registry + estado_sessao', async () => {
   const names = tools.map((t) => t.name).sort();
   assert.deepEqual(names, [
     'baixar_cnh',
+    'conectar_extensao',
     'consultar_cnh',
     'consultar_toxicologico',
     'consultar_veiculos',

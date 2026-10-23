@@ -11,10 +11,11 @@ import { multasTools } from '../services/multas/index.ts';
 import { ufTools } from '../services/uf/index.ts';
 import { veiculoTools } from '../services/veiculo/index.ts';
 import { extrasTools } from '../services/extras/index.ts';
+import { extensaoTools } from '../services/extensao/index.ts';
 import type { ToolContext, ToolDefinition } from './types.ts';
 
 const tools = new Map<ToolName, ToolDefinition>(
-  [...ufTools, ...loginTools, ...cnhTools, ...multasTools, ...veiculoTools, ...extrasTools].map((t) => [
+  [...ufTools, ...loginTools, ...cnhTools, ...multasTools, ...veiculoTools, ...extrasTools, ...extensaoTools].map((t) => [
     t.name,
     t as ToolDefinition,
   ]),

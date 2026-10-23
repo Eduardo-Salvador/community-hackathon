@@ -15,6 +15,8 @@ import { startKeepAlive } from './core/keep-alive.ts';
 import { fileShareText, shareLinks } from './core/share.ts';
 import { buildOpenApi } from './docs/openapi.ts';
 import { registerMcp } from './mcp/server.ts';
+import { extensionLinks } from './core/extension-links.ts';
+import { ingerirPagina, tipoDaPagina } from './services/extensao/index.ts';
 import { Orchestrator } from './orchestrator/index.ts';
 import { createDecisionsClient } from './orchestrator/decisions.ts';
 import { EventBus } from './core/events.ts';
@@ -61,6 +63,7 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
   const sessions = new SessionStore(config.sessionTtlMs, (id) => {
     events.drop(id);
     files.dropOwner(id);
+    extensionLinks.dropSession(id);
     void browsers.close(id);
   });
   const stopKeepAlive = config.keepAliveUrl
@@ -225,6 +228,43 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
       unsubscribe?.();
     });
   });
+
+  // Extensão do Chrome: o usuário loga no gov.br no próprio navegador e a extensão manda as telas do portal.
+  app.post<{ Body: { codigo?: string } }>(
+    '/extension/claim',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      const linked = typeof req.body?.codigo === 'string' ? extensionLinks.claim(req.body.codigo) : undefined;
+      if (!linked || !sessions.has(linked.sessionId)) return reply.code(404).send({ code: 'INVALID_CODE' });
+      events.emitStep(linked.sessionId, 'login', 'extensao_conectada', 'ok');
+      return { token: linked.token };
+    },
+  );
+
+  app.post<{ Body: { url?: string; texto?: string } }>(
+    '/extension/page',
+    { config: { rateLimit: { max: 30, timeWindow: '1 minute' } }, bodyLimit: 512 * 1024 },
+    async (req, reply) => {
+      const token = req.headers.authorization?.replace(/^Bearer /, '') ?? '';
+      const sessionId = token ? extensionLinks.sessionOf(token) : undefined;
+      const session = sessionId ? sessions.get(sessionId) : undefined;
+      if (!session) return reply.code(401).send({ code: 'UNAUTHORIZED' });
+      const { url, texto } = req.body ?? {};
+      const tipo = typeof url === 'string' ? tipoDaPagina(url, config.portalUrl) : undefined;
+      if (!tipo) return { ok: true, ignorada: true };
+      if (typeof texto !== 'string' || !texto.trim()) return reply.code(400).send({ code: 'INVALID_INPUT' });
+      const service = tipo === 'veiculos' ? 'veiculo' : tipo;
+      try {
+        const result = await ingerirPagina(session, extractor, (step, status, data) =>
+          events.emitStep(session.id, service, step, status, data), tipo, texto.slice(0, 50_000));
+        return { ok: true, ...result };
+      } catch (err) {
+        events.emitStep(session.id, service, 'recebendo_da_extensao', 'error', { tipo });
+        req.log.warn({ tipo, err: String(err) }, 'falha ao ler tela enviada pela extensão');
+        return reply.code(502).send({ code: 'EXTRACTION_FAILED' });
+      }
+    },
+  );
 
   registerMcp(app, { config, sessions, files, orchestrator, run: runToolFor });
 

@@ -94,6 +94,7 @@ export const ToolNameSchema = z.enum([
   'gerar_guia_multa',
   'consultar_veiculos',
   'consultar_toxicologico',
+  'conectar_extensao',
 ]);
 export type ToolName = z.infer<typeof ToolNameSchema>;
 
@@ -117,6 +118,7 @@ export const ToolInputs = {
     dataNascimento: isoDate,
     validadeCnh: isoDate.optional(),
   }),
+  conectar_extensao: z.object({}),
 } satisfies Record<ToolName, z.ZodType>;
 
 export const ToolResults = {
@@ -133,6 +135,8 @@ export const ToolResults = {
     prazoNovoExame: isoDate.optional(),
     observacao: text().optional(),
   }),
+  // Código de 6 letras para digitar na extensão do Chrome (uso único, expira em 10 min).
+  conectar_extensao: z.object({ codigo: z.string().regex(/^[A-Z0-9]{6}$/), expiraEm: z.string(), instrucoes: z.string() }),
 } satisfies Record<ToolName, z.ZodType>;
 
 // Próximo passo sugerido ao agente (pela OpenAI Decisions API ou pelas regras fixas).

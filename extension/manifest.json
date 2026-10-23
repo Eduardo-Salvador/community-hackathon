@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Tupi Brasil",
+  "version": "0.1.0",
+  "description": "Conecta sua conta gov.br (no seu próprio navegador) ao assistente Tupi Brasil.",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://portalservicos.senatran.serpro.gov.br/*",
+    "https://community-hackathon-backend.onrender.com/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://portalservicos.senatran.serpro.gov.br/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": { "default_popup": "popup.html", "default_title": "Tupi Brasil" },
+  "icons": { "128": "icon.png" }
+}

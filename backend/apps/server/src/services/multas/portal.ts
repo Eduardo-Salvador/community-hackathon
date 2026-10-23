@@ -19,6 +19,12 @@ export type ResultadoPortalMultas = {
   multas: MultaParaCalculo[];
 };
 
+// Texto da tela de infrações → multas validadas. Usado pelo navegador remoto e pela extensão.
+export async function multasDoTexto(extractor: Extractor, texto: string): Promise<ResultadoPortalMultas> {
+  const extraido = await extractor.extract('multas_portal', ResultadoPortalSchema, texto);
+  return fromPortal('portal-senatran:multas', ResultadoPortalSchema, extraido);
+}
+
 export async function consultarMultasNoPortal(
   page: Page,
   extractor: Extractor,
