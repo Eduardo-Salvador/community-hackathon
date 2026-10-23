@@ -1,13 +1,17 @@
-import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
+import Fastify,{ type FastifyReply, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import websocket from '@fastify/websocket';
 import { z } from 'zod';
 import type { Config } from './core/config.ts';
+import { buildOpenApi } from './docs/openapi.ts';
 import { EventBus } from './core/events.ts';
 import { FileStore } from './core/files.ts';
 import { type Session, SessionStore } from './core/session-store.ts';
 import { listToolSchemas, runTool } from './tools/registry.ts';
+import { createVoiceToken, VoiceUpstreamError } from './voice/token.ts';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -17,7 +21,7 @@ declare module 'fastify' {
 
 const WsAuthSchema = z.object({ type: z.literal('auth'), sessionId: z.string(), token: z.string() });
 
-export async function buildApp(config: Config) {
+export async function buildApp(config: Config, deps: { fetch: typeof fetch } = { fetch: globalThis.fetch }) {
   const app = Fastify({
     logger: config.mock ? false : { redact: ['req.headers.authorization', 'req.headers["x-session-id"]'] },
   });
@@ -29,9 +33,22 @@ export async function buildApp(config: Config) {
   });
   app.addHook('onClose', async () => sessions.close());
 
+  // Corpo vazio com content-type JSON vira {} em vez de erro 400.
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    if (body === '') return done(null, {});
+    try {
+      done(null, JSON.parse(body as string));
+    } catch {
+      done(Object.assign(new Error('JSON inválido'), { statusCode: 400 }), undefined);
+    }
+  });
+
   await app.register(cors, { origin: config.corsOrigin });
   await app.register(rateLimit, { global: false });
   await app.register(websocket);
+  await app.register(swagger, { mode: 'static', specification: { document: buildOpenApi() as never } });
+  await app.register(swaggerUi, { routePrefix: '/docs' });
+  app.get('/openapi.json', async () => app.swagger());
 
   // Toda rota com dados do usuário exige x-session-id + Authorization: Bearer <token>.
   const requireSession = async (req: FastifyRequest, reply: FastifyReply) => {
@@ -43,7 +60,6 @@ export async function buildApp(config: Config) {
   };
 
   app.get('/health', async () => ({ ok: true, mock: config.mock }));
-
   app.post('/session', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async () => {
     const { session, token } = sessions.create();
     return { id: session.id, token };
@@ -51,13 +67,33 @@ export async function buildApp(config: Config) {
 
   app.get('/tools', { preHandler: requireSession }, async () => listToolSchemas());
 
+  app.post(
+    '/voice/token',
+    { preHandler: requireSession, config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    async (req, reply) => {
+      const session = req.auth!;
+      if (!config.openaiApiKey) return reply.code(503).send({ code: 'VOICE_NOT_CONFIGURED' });
+      if (session.voiceTokensIssued >= config.maxVoiceTokensPerSession) {
+        return reply.code(429).send({ code: 'VOICE_LIMIT_REACHED' });
+      }
+      session.voiceTokensIssued++;
+      try {
+        return await createVoiceToken(config, deps.fetch);
+      } catch (err) {
+        if (!(err instanceof VoiceUpstreamError)) throw err;
+        req.log.warn({ status: err.status }, 'falha ao gerar token de voz');
+        return reply.code(502).send({ code: 'VOICE_UPSTREAM_ERROR' });
+      }
+    },
+  );
+
   app.post<{ Params: { name: string } }>(
     '/tools/:name',
     { preHandler: requireSession, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
     async (req, reply) => {
       const result = await runTool(req.params.name, req.body, { session: req.auth!, config, files }, events);
       if (!result.ok) {
-        const status = result.code === 'UNKNOWN_TOOL' ? 404 : result.code === 'INVALID_INPUT' ? 400 : 409;
+        const status = { UNKNOWN_TOOL: 404, NOT_FOUND: 404, INVALID_INPUT: 400, NOT_IMPLEMENTED: 501 }[result.code] ?? 409;
         return reply.code(status).send(result);
       }
       return result;

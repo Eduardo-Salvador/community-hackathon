@@ -27,6 +27,14 @@ test('rotas exigem o token secreto da sessão', async () => {
   assert.equal((await call(headers, 'selecionar_uf', { uf: 'SP' })).statusCode, 200);
 });
 
+test('Swagger expõe todas as tools e rotas', async () => {
+  const doc = (await app.inject({ method: 'GET', url: '/openapi.json' })).json();
+  for (const path of ['/session', '/voice/token', '/files/{id}', '/tools/listar_multas', '/tools/consultar_cnh']) {
+    assert.ok(doc.paths[path], `faltando ${path}`);
+  }
+  assert.equal((await app.inject({ method: 'GET', url: '/docs/' })).statusCode, 200);
+});
+
 test('valida a entrada das tools', async () => {
   const headers = await newSession();
   assert.equal((await call(headers, 'selecionar_uf', { uf: 'XX' })).statusCode, 400);

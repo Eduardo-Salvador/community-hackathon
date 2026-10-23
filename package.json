@@ -6,7 +6,8 @@
     "dev": "npm run dev -w @hackathon/server",
     "start": "npm run start -w @hackathon/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "smoke": "npm run smoke -w @hackathon/server"
   },
   "engines": { "node": ">=22" }
 }

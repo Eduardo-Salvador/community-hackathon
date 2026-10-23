@@ -99,3 +99,24 @@ export const ToolInputs = {
   gerar_guia_multa: z.object({ multaId: z.string().min(1).max(64) }),
   consultar_veiculos: z.object({}),
 } satisfies Record<ToolName, z.ZodType>;
+
+export const ToolResults = {
+  selecionar_uf: z.object({ uf: UFSchema }),
+  iniciar_login: z.object({ liveViewUrl: z.string(), loggedIn: z.boolean() }),
+  consultar_cnh: CnhSchema,
+  baixar_cnh: z.object({ fileId: z.string() }),
+  listar_multas: z.object({ multas: z.array(MultaSchema), pontos: ResumoPontosSchema }),
+  gerar_guia_multa: GuiaSchema,
+  consultar_veiculos: z.object({ veiculos: z.array(VeiculoSchema) }),
+} satisfies Record<ToolName, z.ZodType>;
+
+export const ToolErrorCodeSchema = z.enum([
+  'INVALID_INPUT',
+  'UNKNOWN_TOOL',
+  'NOT_FOUND',
+  'UF_REQUIRED',
+  'LOGIN_REQUIRED',
+  'BAD_SOURCE_DATA',
+  'NOT_IMPLEMENTED',
+]);
+export type ToolErrorCode = z.infer<typeof ToolErrorCodeSchema>;
