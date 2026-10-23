@@ -1,4 +1,4 @@
-# Tupo: os serviços do governo, numa conversa
+# Tupi Brasil: seu assistente para burocracias
 
 **🔗 Acesse:** **https://community-hackathon-sigma.vercel.app**
 API (Swagger): https://community-hackathon-backend.onrender.com/docs
@@ -13,7 +13,7 @@ Os serviços públicos estão cada vez mais digitais, mas continuam espalhados: 
 
 ## A solução
 
-O **Tupo** é um assistente por **voz e chat** que resolve os serviços do governo pelo cidadão. A pessoa fala do jeito dela e o Tupo:
+O **Tupi Brasil** é um assistente por **voz e chat** que resolve os serviços do governo pelo cidadão. A pessoa fala do jeito dela e o Tupi Brasil:
 
 1. entende o que ela precisa;
 2. abre o **login oficial do gov.br** numa janela segura, onde o próprio usuário entra (senha, 2FA e captcha ficam com ele: **nunca vemos a senha**);
@@ -33,7 +33,7 @@ A visão é cobrir **todo o ecossistema gov.br**. O **MVP do hackathon começa p
 | **Exame toxicológico** | Prazo do próximo exame (CNH C, D e E) |
 | **Compartilhar** | Link temporário (15 min) e mensagem pronta para **WhatsApp e e-mail**; no celular, o código copiado abre direto no app do banco |
 
-O Tupo também funciona dentro do **dots da OpenAI** (agente pessoal), pelo nosso servidor **MCP**.
+O Tupi Brasil também funciona dentro do **dots da OpenAI** (agente pessoal), pelo nosso servidor **MCP**.
 
 ### Próximos serviços
 
