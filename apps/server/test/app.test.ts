@@ -43,9 +43,10 @@ test('valida a entrada das tools', async () => {
 
 test('fluxo mock: UF → login → CNH → PDF', async () => {
   const headers = await newSession();
-  assert.equal((await call(headers, 'consultar_cnh')).json().code, 'LOGIN_REQUIRED');
+  assert.equal((await call(headers, 'consultar_cnh')).json().code, 'UF_REQUIRED');
   assert.equal((await call(headers, 'iniciar_login')).json().code, 'UF_REQUIRED');
   await call(headers, 'selecionar_uf', { uf: 'SP' });
+  assert.equal((await call(headers, 'consultar_cnh')).json().code, 'LOGIN_REQUIRED');
   assert.equal((await call(headers, 'iniciar_login')).statusCode, 200);
   assert.equal((await call(headers, 'consultar_cnh')).json().result.categoria, 'AB');
 

@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import {
   CnhSchema,
+  DecisionSchema,
   GuiaSchema,
+  SessionStateSchema,
   MultaSchema,
   ResumoPontosSchema,
   StepEventSchema,
@@ -94,9 +96,16 @@ export function buildOpenApi() {
         Guia: schema(GuiaSchema),
         Veiculo: schema(VeiculoSchema),
         StepEvent: schema(StepEventSchema),
+        Decision: schema(DecisionSchema),
+        SessionState: schema(SessionStateSchema),
         ToolError: {
           type: 'object',
-          properties: { ok: { const: false }, code: schema(ToolErrorCodeSchema), message: { type: 'string' } },
+          properties: {
+            ok: { const: false },
+            code: schema(ToolErrorCodeSchema),
+            message: { type: 'string' },
+            next: { ...ref('Decision'), description: 'Presente em UF_REQUIRED/LOGIN_REQUIRED: qual tool chamar antes' },
+          },
           required: ['ok', 'code', 'message'],
         },
       },
@@ -114,6 +123,15 @@ export function buildOpenApi() {
             200: { description: 'Sessão criada', ...json({ type: 'object', properties: { id: { type: 'string', format: 'uuid' }, token: { type: 'string' } }, required: ['id', 'token'] }) },
             429: { description: 'Limite por IP' },
           },
+        },
+      },
+      '/session/state': {
+        get: {
+          tags: ['Sessão'],
+          summary: 'Estado da sessão e próximo passo sugerido',
+          description: '`next` vem da OpenAI Decisions API quando a confiança é alta (`source: "decisions"`); senão das regras fixas (`source: "rules"`).',
+          security: [{ sessionId: [], bearer: [] }],
+          responses: { 200: { description: 'Estado', ...json(ref('SessionState')) }, 401: toolErrors[401] },
         },
       },
       '/tools': {

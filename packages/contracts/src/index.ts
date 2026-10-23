@@ -110,6 +110,22 @@ export const ToolResults = {
   consultar_veiculos: z.object({ veiculos: z.array(VeiculoSchema) }),
 } satisfies Record<ToolName, z.ZodType>;
 
+// Próximo passo sugerido ao agente (pela OpenAI Decisions API ou pelas regras fixas).
+export const DecisionSchema = z.object({
+  action: z.enum(['ask_uf', 'require_login', 'run_tool', 'done']),
+  tool: ToolNameSchema.optional(),
+  reason: z.string().max(200),
+});
+export type Decision = z.infer<typeof DecisionSchema>;
+
+export const SessionStateSchema = z.object({
+  uf: UFSchema.optional(),
+  loggedIn: z.boolean(),
+  has: z.object({ cnh: z.boolean(), multas: z.boolean(), veiculos: z.boolean() }),
+  next: DecisionSchema.extend({ source: z.enum(['decisions', 'rules']) }),
+});
+export type SessionState = z.infer<typeof SessionStateSchema>;
+
 export const ToolErrorCodeSchema = z.enum([
   'INVALID_INPUT',
   'UNKNOWN_TOOL',

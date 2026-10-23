@@ -8,7 +8,6 @@ export const loginTools = [
     description:
       'Abre a tela de login do gov.br para o usuário entrar. Necessário antes de consultar CNH, multas ou veículos.',
     async handler({ session, config, emit }) {
-      if (!session.uf) throw new ToolError('UF_REQUIRED', 'Selecione o estado antes de fazer login');
       if (!config.mock) throw new ToolError('NOT_IMPLEMENTED', 'Login real (Browserbase) ainda não implementado');
 
       // TODO(A5): criar sessão Browserbase, devolver liveViewUrl e detectar o fim do login.

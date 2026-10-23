@@ -17,8 +17,8 @@ const MOCK_PDF = Buffer.from(
     '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 200]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n',
 );
 
-function requireLogin({ session, config }: ToolContext) {
-  if (!session.browser?.loggedIn) throw new ToolError('LOGIN_REQUIRED', 'Faça login no gov.br primeiro');
+// UF e login já são garantidos pelo orquestrador antes do handler.
+function requireImplemented({ config }: ToolContext) {
   if (!config.mock) throw new ToolError('NOT_IMPLEMENTED', 'Consulta real da CNH ainda não implementada');
 }
 
@@ -28,7 +28,7 @@ export const cnhTools = [
     service: 'cnh',
     description: 'Consulta validade, categoria e situação da CNH do usuário logado.',
     async handler(ctx) {
-      requireLogin(ctx);
+      requireImplemented(ctx);
       ctx.emit('abrindo_portal', 'start');
       await sleep(200);
       ctx.emit('abrindo_portal', 'ok');
@@ -45,7 +45,7 @@ export const cnhTools = [
     service: 'cnh',
     description: 'Baixa o PDF da CNH digital do usuário logado.',
     async handler(ctx) {
-      requireLogin(ctx);
+      requireImplemented(ctx);
       ctx.emit('baixando_pdf', 'start');
       await sleep(200);
       const fileId = ctx.files.put(ctx.session.id, {

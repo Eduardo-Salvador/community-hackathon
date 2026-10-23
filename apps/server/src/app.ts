@@ -7,6 +7,8 @@ import websocket from '@fastify/websocket';
 import { z } from 'zod';
 import type { Config } from './core/config.ts';
 import { buildOpenApi } from './docs/openapi.ts';
+import { Orchestrator } from './orchestrator/index.ts';
+import { createDecisionsClient } from './orchestrator/decisions.ts';
 import { EventBus } from './core/events.ts';
 import { FileStore } from './core/files.ts';
 import { type Session, SessionStore } from './core/session-store.ts';
@@ -32,6 +34,7 @@ export async function buildApp(config: Config, deps: { fetch: typeof fetch } = {
     files.dropOwner(id);
   });
   app.addHook('onClose', async () => sessions.close());
+  const orchestrator = new Orchestrator(createDecisionsClient(config, deps.fetch));
 
   // Corpo vazio com content-type JSON vira {} em vez de erro 400.
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
@@ -64,6 +67,8 @@ export async function buildApp(config: Config, deps: { fetch: typeof fetch } = {
     const { session, token } = sessions.create();
     return { id: session.id, token };
   });
+
+  app.get('/session/state', { preHandler: requireSession }, async (req) => orchestrator.state(req.auth!));
 
   app.get('/tools', { preHandler: requireSession }, async () => listToolSchemas());
 
