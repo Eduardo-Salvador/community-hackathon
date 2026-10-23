@@ -120,3 +120,22 @@ test('MOCK_PERFIL troca os dados de exemplo e JSON inválido volta ao padrão', 
 
   assert.deepEqual(loadConfig({ MOCK_PERFIL: '{quebrado' }).mockPerfil, {});
 });
+
+test('MOCK_CNH_PDF entrega o PDF do arquivo secreto (puro ou base64)', async () => {
+  const { mkdtempSync, writeFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(join(tmpdir(), 'cnh-'));
+  const pdf = Buffer.from('%PDF-1.4 minha cnh de teste');
+  writeFileSync(join(dir, 'cnh.b64'), pdf.toString('base64').replace(/(.{20})/g, '$1\n'));
+  const demo = await buildApp(loadConfig({ MOCK: '1', MOCK_CNH_PDF: join(dir, 'cnh.b64') }));
+  const { id, token } = (await demo.inject({ method: 'POST', url: '/session' })).json();
+  const h = { 'x-session-id': id, authorization: `Bearer ${token}` };
+  const run = (name: string, payload: object = {}) => demo.inject({ method: 'POST', url: `/tools/${name}`, headers: h, payload });
+  await run('selecionar_uf', { uf: 'SP' });
+  await run('iniciar_login');
+  const { fileId } = (await run('baixar_cnh')).json().result;
+  assert.equal((await demo.inject({ method: 'GET', url: `/files/${fileId}`, headers: h })).body, '%PDF-1.4 minha cnh de teste');
+  await demo.close();
+  assert.equal(loadConfig({ MOCK_CNH_PDF: join(dir, 'nao-existe.pdf') }).mockCnhPdf, undefined);
+});

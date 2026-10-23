@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { CnhSchema, MultaSchema, VeiculoSchema } from '@hackathon/contracts';
 
@@ -20,4 +21,19 @@ export function parseMockPerfil(raw: string | undefined): MockPerfil {
     console.warn('[mock] MOCK_PERFIL não é um JSON válido, usando exemplo padrão');
   }
   return {};
+}
+
+// PDF da CNH para a demonstração: Secret File do Render (arquivo privado, fora do git).
+// Aceita o PDF puro ou o conteúdo em base64 (Secret Files são texto).
+export function loadMockPdf(path: string | undefined): Buffer | undefined {
+  if (!path) return undefined;
+  try {
+    const raw = readFileSync(path);
+    if (raw.subarray(0, 5).toString() === '%PDF-') return raw;
+    const decoded = Buffer.from(raw.toString('utf8').replace(/\s+/g, ''), 'base64');
+    return decoded.subarray(0, 5).toString() === '%PDF-' ? decoded : undefined;
+  } catch {
+    console.warn('[mock] MOCK_CNH_PDF não encontrado, usando o PDF de exemplo');
+    return undefined;
+  }
 }

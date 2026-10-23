@@ -130,7 +130,7 @@ export const cnhTools = [
           contentType: 'application/pdf',
           filename: 'cnh-digital.pdf',
           title: cnhTitle(ctx, 'CNH digital'),
-          body: MOCK_PDF,
+          body: ctx.config.mockCnhPdf ?? MOCK_PDF,
         });
         ctx.emit('baixando_pdf', 'ok');
         result = { fileId, tipo: 'pdf' as const };

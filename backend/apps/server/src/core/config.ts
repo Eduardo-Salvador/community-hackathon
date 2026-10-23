@@ -1,9 +1,10 @@
-import { type MockPerfil, parseMockPerfil } from './mock-perfil.ts';
+import { loadMockPdf, type MockPerfil, parseMockPerfil } from './mock-perfil.ts';
 
 export type Config = {
   port: number;
   mock: boolean;
   mockPerfil: MockPerfil;
+  mockCnhPdf?: Buffer;
   corsOrigins: string[];
   publicUrl?: string;
   trustProxy: boolean;
@@ -52,6 +53,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     port: Number(env.PORT ?? 3000),
     mock: env.MOCK !== '0',
     mockPerfil: parseMockPerfil(env.MOCK_PERFIL),
+    // Caminho do PDF da CNH de demonstração (ex.: Secret File do Render em /etc/secrets/cnh.pdf).
+    mockCnhPdf: loadMockPdf(env.MOCK_CNH_PDF),
     // Aceita várias URLs separadas por vírgula; barra no final é ignorada (o navegador não manda barra).
     corsOrigins: (env.CORS_ORIGIN || 'http://localhost:5173')
       .split(',')
