@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tupi Brasil",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Conecta sua conta gov.br (no seu próprio navegador) ao assistente Tupi Brasil.",
   "permissions": ["storage", "tabs"],
   "host_permissions": [

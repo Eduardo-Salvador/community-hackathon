@@ -31,6 +31,11 @@ export class ExtensionLinks {
     return { token, sessionId: entry.sessionId };
   }
 
+  isLinked(sessionId: string): boolean {
+    for (const id of this.tokens.values()) if (id === sessionId) return true;
+    return false;
+  }
+
   sessionOf(token: string): string | undefined {
     return this.tokens.get(hash(token));
   }

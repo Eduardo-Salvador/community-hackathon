@@ -61,3 +61,25 @@ test('extensão pareada manda telas e os dados reais aparecem mesmo em MOCK=1', 
   assert.equal((await app.inject({ method: 'POST', url: '/extension/page', payload: { url: PORTAL } })).statusCode, 401);
   await app.close();
 });
+
+test('com a extensão conectada, iniciar_login não abre navegador e conclui quando a extensão sincroniza', async () => {
+  const app = await buildApp(
+    { ...loadConfig({ MOCK: '0', OPENAI_API_KEY: 'sk', DECISIONS: '0' }), loginPollMs: 5 },
+    { fetch: fakeOpenAI, browserProvider: { open: async () => { throw new Error('não deveria abrir navegador'); } } },
+  );
+  const { id, token } = (await app.inject({ method: 'POST', url: '/session' })).json();
+  const headers = { 'x-session-id': id, authorization: `Bearer ${token}` };
+  const call = (name: string, payload: object = {}) => app.inject({ method: 'POST', url: `/tools/${name}`, headers, payload });
+  await call('selecionar_uf', { uf: 'SP' });
+  const { codigo } = (await call('conectar_extensao')).json().result;
+  const ext = { authorization: `Bearer ${(await app.inject({ method: 'POST', url: '/extension/claim', payload: { codigo } })).json().token}` };
+
+  const login = (await call('iniciar_login')).json();
+  assert.deepEqual(login.result, { liveViewUrl: '', loggedIn: false });
+
+  await app.inject({ method: 'POST', url: '/extension/page', headers: ext, payload: { url: `${PORTAL}#/habilitacao/detalhes/1/2`, texto: 'detalhe' } });
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal((await app.inject({ method: 'GET', url: '/session/state', headers })).json().loggedIn, true);
+  assert.equal((await call('consultar_cnh')).json().result.nome, 'JOAO REAL');
+  await app.close();
+});
