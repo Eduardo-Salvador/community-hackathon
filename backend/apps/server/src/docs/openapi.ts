@@ -47,6 +47,8 @@ Token errado fecha com código **4401**; JSON inválido com **4400**.
 2. Mostrar \`liveViewUrl\` num iframe; o usuário faz o login (senha, 2FA, captcha) ali
 3. Quando chegar o StepEvent \`login:aguardando_usuario\` com \`ok\`, está logado
    (\`error\` com \`LOGIN_TIMEOUT\` após 5 min sem login)
+4. Enquanto a sessão está ativa, o backend recarrega o portal a cada 10 min para o gov.br não deslogar.
+   Se deslogar mesmo assim, chega \`login:sessao_govbr\` com \`error\` (\`GOVBR_SESSION_EXPIRED\`): chamar \`iniciar_login\` de novo.
 
 ### MCP (dots e outros clientes MCP)
 - Endpoint \`/mcp\` (Streamable HTTP), com \`Authorization: Bearer <MCP_API_KEY>\`. Desligado sem a chave.

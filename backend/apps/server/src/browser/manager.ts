@@ -24,6 +24,8 @@ export function isLoggedIn(currentUrl: string, portalUrl: string): boolean {
 export class BrowserManager {
   private browsers = new Map<string, RemoteBrowser>();
   private watchers = new Map<string, NodeJS.Timeout>();
+  private keepers = new Map<string, NodeJS.Timeout>();
+  private lastUsed = new Map<string, number>();
 
   constructor(private config: Config, private provider?: BrowserProvider) {}
 
@@ -57,12 +59,17 @@ export class BrowserManager {
 
   // Só entrega a página depois do login. É o que os serviços (CNH, multas, veículo) usam.
   getPage(sessionId: string): Page | undefined {
-    return this.watchers.has(sessionId) ? undefined : this.browsers.get(sessionId)?.page;
+    const page = this.watchers.has(sessionId) ? undefined : this.browsers.get(sessionId)?.page;
+    if (page) this.lastUsed.set(sessionId, Date.now());
+    return page;
   }
 
   async close(sessionId: string) {
     clearInterval(this.watchers.get(sessionId));
     this.watchers.delete(sessionId);
+    clearInterval(this.keepers.get(sessionId));
+    this.keepers.delete(sessionId);
+    this.lastUsed.delete(sessionId);
     const browser = this.browsers.get(sessionId);
     this.browsers.delete(sessionId);
     await browser?.close();
@@ -81,6 +88,7 @@ export class BrowserManager {
         this.watchers.delete(session.id);
         if (session.browser) session.browser.loggedIn = true;
         emit('aguardando_usuario', 'ok');
+        this.keepPortalAlive(session, browser, emit);
       } else if (Date.now() > deadline) {
         emit('aguardando_usuario', 'error', { code: 'LOGIN_TIMEOUT' });
         session.browser = undefined;
@@ -88,5 +96,30 @@ export class BrowserManager {
       }
     }, this.config.loginPollMs);
     this.watchers.set(session.id, timer);
+  }
+
+  // Recarrega o portal de tempos em tempos para o gov.br não deslogar enquanto a conversa está ativa.
+  // Para sozinho quando a sessão expira (close). Se o gov.br deslogar mesmo assim, avisa e pede login de novo.
+  private keepPortalAlive(session: Session, browser: RemoteBrowser, emit: Emit) {
+    let running = false;
+    const timer = setInterval(async () => {
+      if (this.browsers.get(session.id) !== browser) return clearInterval(timer);
+      // Uma tool usou a página há pouco: não recarrega no meio de uma consulta.
+      const idle = Date.now() - (this.lastUsed.get(session.id) ?? 0);
+      if (running || idle < this.config.portalKeepAliveMs / 2) return;
+      running = true;
+      try {
+        await browser.page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+        if (this.browsers.get(session.id) === browser && !isLoggedIn(browser.page.url(), this.config.portalUrl)) {
+          emit('sessao_govbr', 'error', { code: 'GOVBR_SESSION_EXPIRED' });
+          session.browser = undefined;
+          await this.close(session.id);
+        }
+      } finally {
+        running = false;
+      }
+    }, this.config.portalKeepAliveMs);
+    timer.unref();
+    this.keepers.set(session.id, timer);
   }
 }

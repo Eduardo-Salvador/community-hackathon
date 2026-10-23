@@ -10,6 +10,7 @@ import { createBrowserbaseProvider } from './browser/browserbase.ts';
 import { BrowserManager } from './browser/manager.ts';
 import type { BrowserProvider } from './browser/types.ts';
 import type { Config } from './core/config.ts';
+import { startKeepAlive } from './core/keep-alive.ts';
 import { fileShareText, shareLinks } from './core/share.ts';
 import { buildOpenApi } from './docs/openapi.ts';
 import { registerMcp } from './mcp/server.ts';
@@ -59,7 +60,13 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
     files.dropOwner(id);
     void browsers.close(id);
   });
+  const stopKeepAlive = config.keepAliveUrl
+    ? startKeepAlive(config.keepAliveUrl, config.keepAliveIntervalMs, deps.fetch, (err) =>
+        app.log.warn({ err }, 'keep-alive falhou'),
+      )
+    : () => {};
   app.addHook('onClose', async () => {
+    stopKeepAlive();
     sessions.close();
     await browsers.closeAll();
   });
