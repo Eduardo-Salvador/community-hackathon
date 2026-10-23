@@ -117,6 +117,7 @@ export const ToolErrorCodeSchema = z.enum([
   'UF_REQUIRED',
   'LOGIN_REQUIRED',
   'BAD_SOURCE_DATA',
+  'SOURCE_UNAVAILABLE',
   'NOT_IMPLEMENTED',
 ]);
 export type ToolErrorCode = z.infer<typeof ToolErrorCodeSchema>;

@@ -27,7 +27,8 @@ const toolErrors = {
   400: { description: 'INVALID_INPUT', ...json(ref('ToolError')) },
   401: { description: 'Sessão ausente ou token inválido', ...errorBody('UNAUTHORIZED') },
   404: { description: 'UNKNOWN_TOOL ou NOT_FOUND', ...json(ref('ToolError')) },
-  409: { description: 'UF_REQUIRED, LOGIN_REQUIRED ou BAD_SOURCE_DATA', ...json(ref('ToolError')) },
+  409: { description: 'UF_REQUIRED ou LOGIN_REQUIRED', ...json(ref('ToolError')) },
+  502: { description: 'BAD_SOURCE_DATA ou SOURCE_UNAVAILABLE', ...json(ref('ToolError')) },
   501: { description: 'NOT_IMPLEMENTED (serviço real ainda não feito)', ...json(ref('ToolError')) },
 };
 

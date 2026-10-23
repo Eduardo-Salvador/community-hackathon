@@ -109,7 +109,14 @@ export async function buildApp(config: Config, deps: AppDependencies = {}) {
         events,
       );
       if (!result.ok) {
-        const status = { UNKNOWN_TOOL: 404, NOT_FOUND: 404, INVALID_INPUT: 400, NOT_IMPLEMENTED: 501 }[result.code] ?? 409;
+        const status = {
+          UNKNOWN_TOOL: 404,
+          NOT_FOUND: 404,
+          INVALID_INPUT: 400,
+          BAD_SOURCE_DATA: 502,
+          SOURCE_UNAVAILABLE: 502,
+          NOT_IMPLEMENTED: 501,
+        }[result.code] ?? 409;
         return reply.code(status).send(result);
       }
       return result;

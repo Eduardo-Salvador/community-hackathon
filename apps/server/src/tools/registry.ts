@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ToolInputs, ToolResults, type ToolName } from '@hackathon/contracts';
+import { AdapterError } from '../adapters/http/errors.ts';
 import { ToolError } from '../core/errors.ts';
 import { UntrustedDataError } from '../core/untrusted.ts';
 import type { EventBus } from '../core/events.ts';
@@ -60,6 +61,11 @@ export async function runTool(
         ? { code: err.code, message: err.message }
         : err instanceof UntrustedDataError
           ? { code: 'BAD_SOURCE_DATA', message: err.message }
+          : err instanceof AdapterError
+            ? {
+                code: err.code === 'INVALID_RESPONSE' ? 'BAD_SOURCE_DATA' : 'SOURCE_UNAVAILABLE',
+                message: `${err.provider} indisponível`,
+              }
           : { code: 'INTERNAL', message: 'Erro inesperado' };
     emit(tool.name, 'error', failure);
     if (failure.code === 'INTERNAL') throw err;

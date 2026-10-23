@@ -8,6 +8,7 @@ export type Config = {
   infosimplesToken?: string;
   infosimplesMultasUrl?: string;
   infosimplesVeiculoUrl?: string;
+  senatranMultasUrl?: string;
   zapayGuiaUrl?: string;
   zapayAccessToken?: string;
   zapayAuthScheme: string;
@@ -33,6 +34,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     infosimplesToken: env.INFOSIMPLES_TOKEN || undefined,
     infosimplesMultasUrl: env.INFOSIMPLES_MULTAS_URL || undefined,
     infosimplesVeiculoUrl: env.INFOSIMPLES_VEICULO_URL || undefined,
+    senatranMultasUrl: env.SENATRAN_MULTAS_URL || undefined,
     zapayGuiaUrl: env.ZAPAY_GUIA_URL || undefined,
     zapayAccessToken: env.ZAPAY_ACCESS_TOKEN || undefined,
     zapayAuthScheme: env.ZAPAY_AUTH_SCHEME ?? 'JWT',
