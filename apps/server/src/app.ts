@@ -5,6 +5,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import websocket from '@fastify/websocket';
 import { z } from 'zod';
+import { createAdapters, type Adapters } from './adapters/index.ts';
 import type { Config } from './core/config.ts';
 import { buildOpenApi } from './docs/openapi.ts';
 import { EventBus } from './core/events.ts';
@@ -25,11 +26,13 @@ const WsAuthSchema = z.object({ type: z.literal('auth'), sessionId: z.string(), 
 export type AppDependencies = {
   fetch?: typeof fetch;
   getPage?: GetPage;
+  adapters?: Adapters;
 };
 
 export async function buildApp(config: Config, deps: AppDependencies = {}) {
   const fetchImpl = deps.fetch ?? globalThis.fetch;
   const getPage: GetPage = deps.getPage ?? (async () => undefined);
+  const adapters = deps.adapters ?? createAdapters(config, fetchImpl);
   const app = Fastify({
     logger: config.mock ? false : { redact: ['req.headers.authorization', 'req.headers["x-session-id"]'] },
   });
@@ -102,7 +105,7 @@ export async function buildApp(config: Config, deps: AppDependencies = {}) {
       const result = await runTool(
         req.params.name,
         req.body,
-        { session: req.auth!, config, files, getPage },
+        { session: req.auth!, config, files, adapters, getPage },
         events,
       );
       if (!result.ok) {
