@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { UF_LIST } from '../../api/types';
 import { useStore } from '../../conversation/context';
+import { UF_NAMES } from '../../lib/ufs';
 import { CheckIcon } from '../icons';
 
 export function UfPicker() {
@@ -10,7 +11,7 @@ export function UfPicker() {
     return (
       <div className="panel uf-picked">
         <span className="uf-picked__code">{uf}</span>
-        <span className="hint">DETRAN-{uf}</span>
+        <span className="hint">{UF_NAMES[uf] ?? uf} · DETRAN-{uf}</span>
         <span className="uf-picked__ok">
           <CheckIcon size={14} />
           Estado definido
