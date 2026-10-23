@@ -33,7 +33,7 @@ export async function consultarVeiculos(
   if (ctx.config.mock) {
     ctx.emit('carregando_mock', 'start');
     await sleep(200);
-    veiculos = MOCK_VEICULOS.map((veiculo) => ({ ...veiculo }));
+    veiculos = (ctx.config.mockPerfil.veiculos ?? MOCK_VEICULOS).map((veiculo) => ({ ...veiculo }));
     ctx.emit('carregando_mock', 'ok', { quantidade: veiculos.length });
 
     ctx.emit('preparando_crlv', 'start');

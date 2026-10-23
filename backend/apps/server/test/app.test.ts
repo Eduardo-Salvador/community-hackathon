@@ -101,3 +101,22 @@ test('CORS ignora barra no final e aceita várias origens', async () => {
   assert.equal(await allow('https://outro.com'), undefined);
   await cors.close();
 });
+
+test('MOCK_PERFIL troca os dados de exemplo e JSON inválido volta ao padrão', async () => {
+  const perfil = {
+    cnh: { nome: 'JOAO EXEMPLO', registro: '12345678900', categoria: 'B', validade: '2030-05-01', situacao: 'regular' },
+    veiculos: [{ placa: 'XYZ9A87', modelo: 'FIAT ARGO', licenciamento: { pago: true, vencimento: '2026-12-31' }, ipvaEmAberto: 0, restricoes: [], recall: [] }],
+  };
+  const custom = await buildApp(loadConfig({ MOCK: '1', MOCK_PERFIL: JSON.stringify(perfil) }));
+  const { id, token } = (await custom.inject({ method: 'POST', url: '/session' })).json();
+  const h = { 'x-session-id': id, authorization: `Bearer ${token}` };
+  const run = (name: string, payload: object = {}) => custom.inject({ method: 'POST', url: `/tools/${name}`, headers: h, payload });
+  await run('selecionar_uf', { uf: 'SP' });
+  await run('iniciar_login');
+  assert.equal((await run('consultar_cnh')).json().result.nome, 'JOAO EXEMPLO');
+  assert.equal((await run('consultar_veiculos')).json().result.veiculos[0].placa, 'XYZ9A87');
+  assert.equal((await run('listar_multas')).json().result.multas[0].id, 'm1', 'multas não informadas usam o exemplo');
+  await custom.close();
+
+  assert.deepEqual(loadConfig({ MOCK_PERFIL: '{quebrado' }).mockPerfil, {});
+});

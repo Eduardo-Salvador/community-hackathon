@@ -43,9 +43,10 @@ export async function listarMultas(
   if (ctx.config.mock) {
     ctx.emit('carregando_mock', 'start');
     await sleep(200);
-    multasSemCalculo = MOCK_MULTAS;
+    multasSemCalculo = ctx.config.mockPerfil.multas ?? MOCK_MULTAS;
     ear = false;
-    referenciaCalculo ??= MOCK_DATA_REFERENCIA;
+    // Exemplo padrão usa data fixa; perfil personalizado (MOCK_PERFIL) usa a data de hoje.
+    if (!ctx.config.mockPerfil.multas) referenciaCalculo ??= MOCK_DATA_REFERENCIA;
     ctx.emit('carregando_mock', 'ok', { quantidade: multasSemCalculo.length });
   } else {
     let portal: Awaited<ReturnType<typeof consultarMultasNoPortal>> | undefined;

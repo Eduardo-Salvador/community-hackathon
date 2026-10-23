@@ -107,7 +107,7 @@ export const cnhTools = [
       if (ctx.config.mock) {
         ctx.emit('extraindo_dados', 'start');
         await sleep(200);
-        cnh = fromPortal('portal-senatran', CnhSchema, MOCK_CNH);
+        cnh = fromPortal('portal-senatran', CnhSchema, ctx.config.mockPerfil.cnh ?? MOCK_CNH);
         ctx.emit('extraindo_dados', 'ok');
       } else {
         cnh = await consultarReal(ctx);

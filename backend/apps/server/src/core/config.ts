@@ -1,6 +1,9 @@
+import { type MockPerfil, parseMockPerfil } from './mock-perfil.ts';
+
 export type Config = {
   port: number;
   mock: boolean;
+  mockPerfil: MockPerfil;
   corsOrigins: string[];
   publicUrl?: string;
   trustProxy: boolean;
@@ -48,6 +51,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   return {
     port: Number(env.PORT ?? 3000),
     mock: env.MOCK !== '0',
+    mockPerfil: parseMockPerfil(env.MOCK_PERFIL),
     // Aceita várias URLs separadas por vírgula; barra no final é ignorada (o navegador não manda barra).
     corsOrigins: (env.CORS_ORIGIN || 'http://localhost:5173')
       .split(',')
