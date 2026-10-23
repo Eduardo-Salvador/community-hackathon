@@ -17,6 +17,7 @@
     "@fastify/swagger-ui": "^6.1.2",
     "@fastify/websocket": "^11.2.0",
     "@hackathon/contracts": "*",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "fastify": "^5.6.1",
     "playwright-core": "^1.64.1",
     "tsx": "^4.20.6",

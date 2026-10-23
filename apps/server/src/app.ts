@@ -11,6 +11,7 @@ import { BrowserManager } from './browser/manager.ts';
 import type { BrowserProvider } from './browser/types.ts';
 import type { Config } from './core/config.ts';
 import { buildOpenApi } from './docs/openapi.ts';
+import { registerMcp } from './mcp/server.ts';
 import { Orchestrator } from './orchestrator/index.ts';
 import { createDecisionsClient } from './orchestrator/decisions.ts';
 import { EventBus } from './core/events.ts';
@@ -54,6 +55,9 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
     await browsers.closeAll();
   });
   const orchestrator = new Orchestrator(createDecisionsClient(config, deps.fetch));
+  // Mesma execução para REST, voz e MCP.
+  const runToolFor = (session: Session, name: string, input: unknown) =>
+    runTool(name, input, { session, config, files, browsers, extractor }, events);
 
   // Corpo vazio com content-type JSON vira {} em vez de erro 400.
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
@@ -115,7 +119,7 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
     '/tools/:name',
     { preHandler: requireSession, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
     async (req, reply) => {
-      const result = await runTool(req.params.name, req.body, { session: req.auth!, config, files, browsers, extractor }, events);
+      const result = await runToolFor(req.auth!, req.params.name, req.body);
       if (!result.ok) {
         const status =
           {
@@ -167,6 +171,8 @@ export async function buildApp(config: Config, overrides: Partial<Deps> = {}) {
       unsubscribe?.();
     });
   });
+
+  registerMcp(app, { config, sessions, files, orchestrator, run: runToolFor });
 
   return app;
 }

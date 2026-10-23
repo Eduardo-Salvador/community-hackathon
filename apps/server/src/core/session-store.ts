@@ -46,6 +46,24 @@ export class SessionStore {
     return entry.session;
   }
 
+  // Existe e não expirou (não renova o TTL).
+  has(id: string): boolean {
+    const entry = this.sessions.get(id);
+    return Boolean(entry && entry.session.expiresAt >= Date.now());
+  }
+
+  // Acesso interno (ex.: MCP, que já autenticou a conexão). Também renova o TTL.
+  get(id: string): Session | undefined {
+    const entry = this.sessions.get(id);
+    if (!entry) return undefined;
+    if (entry.session.expiresAt < Date.now()) {
+      this.delete(id);
+      return undefined;
+    }
+    entry.session.expiresAt = Date.now() + this.ttlMs;
+    return entry.session;
+  }
+
   delete(id: string) {
     if (this.sessions.delete(id)) this.onExpire(id);
   }

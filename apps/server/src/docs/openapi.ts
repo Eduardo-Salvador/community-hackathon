@@ -48,6 +48,11 @@ Token errado fecha com código **4401**; JSON inválido com **4400**.
 3. Quando chegar o StepEvent \`login:aguardando_usuario\` com \`ok\`, está logado
    (\`error\` com \`LOGIN_TIMEOUT\` após 5 min sem login)
 
+### MCP (dots e outros clientes MCP)
+- Endpoint \`/mcp\` (Streamable HTTP), com \`Authorization: Bearer <MCP_API_KEY>\`. Desligado sem a chave.
+- Cada sessão MCP tem a própria sessão do backend. Mesmas tools + \`estado_sessao\`.
+- \`iniciar_login\` devolve o link do live view para o usuário; arquivos (PDF/print) vêm embutidos no resultado.
+
 ### Voz
 1. \`POST /voice/token\` → token temporário da OpenAI Realtime (já com instruções e tools)
 2. Frontend conecta via WebRTC direto na OpenAI com esse token

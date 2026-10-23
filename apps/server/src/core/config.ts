@@ -3,6 +3,7 @@ export type Config = {
   mock: boolean;
   corsOrigin: string;
   openaiApiKey?: string;
+  mcpApiKey?: string;
   voiceModel: string;
   extractionModel: string;
   extractionTimeoutMs: number;
@@ -27,6 +28,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     mock: env.MOCK !== '0',
     corsOrigin: env.CORS_ORIGIN ?? 'http://localhost:5173',
     openaiApiKey: env.OPENAI_API_KEY || undefined,
+    // Chave que o dots (ou outro cliente MCP) manda em Authorization: Bearer. Sem ela, /mcp fica desligado.
+    mcpApiKey: env.MCP_API_KEY || undefined,
     voiceModel: env.VOICE_MODEL ?? 'gpt-realtime',
     extractionModel: env.EXTRACTION_MODEL ?? 'gpt-6-astra',
     extractionTimeoutMs: 30_000,
